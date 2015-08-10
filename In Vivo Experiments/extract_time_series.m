@@ -1,4 +1,4 @@
-function [  mean_AIF_15, mean_pyruvate_15, mean_lactate_15, all_AIF, all_pyruvate, all_lactate ] = extract_time_series( pa, lac, proton, location_params)
+function [  mean_AIF_15, mean_pyruvate_15, mean_lactate_15, all_AIF, all_pyruvate, all_lactate, left_kidney_15,  blood_15] = extract_time_series( pa, lac, proton, location_params)
 
 x_left_15  = location_params(1); 
 y_left_15  = location_params(2); 

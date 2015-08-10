@@ -46,7 +46,8 @@ location_params = [x_tissue, y_tissue, r_tissue, x_blood, y_blood, r_blood];
 %   -- Fisher information optimized flip angles 
 load('exp1_raw_data.mat') 
 [ mean_AIF_exp1, mean_pyruvate_exp1, mean_lactate_exp1,  ...
-      all_AIF_exp1,     all_pyruvate_exp1,     all_lactate_exp1 ] ...
+      all_AIF_exp1,     all_pyruvate_exp1,     all_lactate_exp1, ...
+      coords] ...
     = extract_time_series( pa(:, :, :, 1), lac(:, :, :, 1), im_h, location_params);
 alpha_exp1 = pi/180*flips; % flip angles used 
 
@@ -150,6 +151,8 @@ print(gcf, '-dpdf', 'profile.pdf');
 
 %% Visualize locations where time series are extracted 
 
+dx = -10; 
+dy = -7; 
 figure
 image(im_h(:, :, 5)/300) 
 colormap(gray)
@@ -162,6 +165,7 @@ mask_left = ((X-x_tissue).^2 + (Y-y_tissue).^2 < r_tissue^2);
 mask_left_im_h = kron(mask_left, [ones(15, 15) zeros(15, 1); zeros(1, 15) 0]); 
 set(h, 'AlphaData', mask_left_im_h); 
 hold off
+text(coords(:, 1)*16+dx, coords(:, 2)*16+dy, num2str([1:9]'))
 daspect([1 1 1])
 tightfig(gcf); 
 print(gcf, '-dpdf', 'voxels_extracted.pdf');
@@ -276,12 +280,17 @@ print(gcf, '-dpdf', 'estimated_inputs.pdf');
 
 %% Visulalize spread of kTRANS and kPL estimates 
 
+dx = 0.002; 
+
 figure 
 set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
 hold on
 plot(param_est_exp2(:, 1), param_est_exp2(:, 2), 'o', 'MarkerFaceColor', berkeley_colors(2, :))
+text(param_est_exp2(:, 1)+dx, param_est_exp2(:, 2), cellstr(num2str([1:size(param_est_exp2, 1)]')))
 plot(param_est_exp3(:, 1), param_est_exp3(:, 2), 'o', 'MarkerFaceColor', berkeley_colors(4, :)) 
+text(param_est_exp3(:, 1)+dx, param_est_exp3(:, 2), cellstr(num2str([1:size(param_est_exp3, 1)]')))
 plot(param_est_exp1(:, 1), param_est_exp1(:, 2), 'o', 'MarkerFaceColor', berkeley_colors(3, :))
+text(param_est_exp1(:, 1)+dx, param_est_exp1(:, 2), cellstr(num2str([1:size(param_est_exp1, 1)]')))
 hold off
 xlabel('k_{TRANS}')
 ylabel('k_{PL}')
@@ -297,7 +306,7 @@ print(gcf, '-dpdf', 'kPL_kTRANS_in_vivo_est.pdf');
 
 %% Plot fit of model to data 
 
-i = 6 % choose voxel 
+i = 5 % choose voxel 
 
 figure 
 set(gca,'ColorOrder', berkeley_colors([2 3 1 4], :), 'NextPlot', 'replacechildren')
@@ -371,6 +380,20 @@ figure
 imagesc(parameter_map_Fisher_information(:, :, 1))
 title('Map of parameter kTRANS')
 axis off
+axis off
+colorbar
+daspect([1 1 1])
+print(gcf, '-dpdf', 'kTRANS_map_Fisher_information.pdf');
+
+% plot kPL map 
+figure
+imagesc(parameter_map_Fisher_information(:, :, 2))
+title('Map of parameter kPL')
+axis off
+caxis([0.09 0.13])
+colorbar
+daspect([1 1 1])
+print(gcf, '-dpdf', 'kPL_map_Fisher_information.pdf');
 
 % plot kPL map superimposed over proton image 
 proton_im(:, :, 1) = im_h(:, :, 5)/20000; 
@@ -416,6 +439,20 @@ figure
 imagesc(parameter_map_T1_effective(:, :, 1))
 title('Map of parameter kTRANS')
 axis off
+axis off
+colorbar
+daspect([1 1 1])
+print(gcf, '-dpdf', 'kTRANS_map_T1_effective.pdf');
+
+% plot kPL map 
+figure
+imagesc(parameter_map_T1_effective(:, :, 2))
+title('Map of parameter kPL')
+axis off
+caxis([0.09 0.13])
+colorbar
+daspect([1 1 1])
+print(gcf, '-dpdf', 'kPL_map_T1_effective.pdf');
 
 % plot kPL map superimposed over proton image 
 figure 
@@ -457,6 +494,19 @@ figure
 imagesc(parameter_map_RF_compensated(:, :, 1))
 title('Map of parameter kTRANS')
 axis off
+colorbar
+daspect([1 1 1])
+print(gcf, '-dpdf', 'kTRANS_map_RF_compensated.pdf');
+
+% plot kPL map 
+figure
+imagesc(parameter_map_RF_compensated(:, :, 2))
+title('Map of parameter kPL')
+axis off
+caxis([0.09 0.13])
+colorbar
+daspect([1 1 1])
+print(gcf, '-dpdf', 'kPL_map_RF_compensated.pdf');
 
 % plot kPL map superimposed over proton image 
 figure 

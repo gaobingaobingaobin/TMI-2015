@@ -297,7 +297,7 @@ for noise = 1:length(noise_vals)
 end
 
 
-%% Generate plot of kPL error 
+%% Generate plots of parameter error 
 
 for noise = 1:length(noise_vals)
         kPL_error_opt(noise)               = sqrt(mean(abs(parameters_of_interest_est_opt(:, 2, noise)             - kPL_val).^2)); 
@@ -306,6 +306,12 @@ for noise = 1:length(noise_vals)
         kTRANS_error_opt(noise)            = sqrt(mean(abs(parameters_of_interest_est_opt(:, 1, noise)             - kTRANS_val).^2)); 
         kTRANS_error_const(noise)          = sqrt(mean(abs(parameters_of_interest_est_const(:, 1, noise)           - kTRANS_val).^2)); 
         kTRANS_error_RF_compensated(noise) = sqrt(mean(abs(parameters_of_interest_est_RF_compensated(:, 1, noise)  - kTRANS_val).^2)); 
+        R1P_error_opt(noise)               = sqrt(mean(abs(parameters_of_interest_est_opt(:, 3, noise)             - R1P_val).^2)); 
+        R1P_error_const(noise)             = sqrt(mean(abs(parameters_of_interest_est_const(:, 3, noise)           - R1P_val).^2)); 
+        R1P_error_RF_compensated(noise)    = sqrt(mean(abs(parameters_of_interest_est_RF_compensated(:, 3, noise)  - R1P_val).^2)); 
+        R1L_error_opt(noise)               = sqrt(mean(abs(parameters_of_interest_est_opt(:, 4, noise)             - R1L_val).^2)); 
+        R1L_error_const(noise)             = sqrt(mean(abs(parameters_of_interest_est_const(:, 4, noise)           - R1L_val).^2)); 
+        R1L_error_RF_compensated(noise)    = sqrt(mean(abs(parameters_of_interest_est_RF_compensated(:, 4, noise)  - R1L_val).^2)); 
 end
 
 kPL_error_opt               = kPL_error_opt([1:2 4:end]);
@@ -314,6 +320,12 @@ kPL_error_RF_compensated    = kPL_error_RF_compensated([1:2 4:end]);
 kTRANS_error_opt            = kTRANS_error_opt([1:2 4:end]);
 kTRANS_error_const          = kTRANS_error_const([1:2 4:end]);
 kTRANS_error_RF_compensated = kTRANS_error_RF_compensated([1:2 4:end]);
+R1P_error_opt               = R1P_error_opt([1:2 4:end]);
+R1P_error_const             = R1P_error_const([1:2 4:end]);
+R1P_error_RF_compensated    = R1P_error_RF_compensated([1:2 4:end]);
+R1L_error_opt               = R1L_error_opt([1:2 4:end]);
+R1L_error_const             = R1L_error_const([1:2 4:end]);
+R1L_error_RF_compensated    = R1L_error_RF_compensated([1:2 4:end]);
 noise_vals_small = noise_vals([1:2 4:end]);
 
 figure
@@ -330,6 +342,47 @@ title('kPL estimation error comparison')
 tightfig(gcf)
 print(gcf, '-dpdf', 'kPL_error.pdf');
 
+figure
+set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
+loglog(noise_vals_small, kTRANS_error_const, 'o-', 'LineWidth', 2)
+hold on
+loglog(noise_vals_small, kTRANS_error_RF_compensated, 'o-', 'LineWidth', 2)
+loglog(noise_vals_small, kTRANS_error_opt, 'o-', 'LineWidth', 2)
+hold off
+legend('constant', 'RF compensated', 'Fisher information')
+xlabel('\sigma^2')
+ylabel('RMS error (average of 25 trials)')
+title('kTRANS estimation error comparison')
+tightfig(gcf)
+print(gcf, '-dpdf', 'kTRANS_error.pdf');
+
+figure
+set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
+loglog(noise_vals_small, R1P_error_const, 'o-', 'LineWidth', 2)
+hold on
+loglog(noise_vals_small, R1P_error_RF_compensated, 'o-', 'LineWidth', 2)
+loglog(noise_vals_small, R1P_error_opt, 'o-', 'LineWidth', 2)
+hold off
+legend('constant', 'RF compensated', 'Fisher information')
+xlabel('\sigma^2')
+ylabel('RMS error (average of 25 trials)')
+title('R1P estimation error comparison')
+tightfig(gcf)
+print(gcf, '-dpdf', 'R1P_error.pdf');
+
+figure
+set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
+loglog(noise_vals_small, R1L_error_const, 'o-', 'LineWidth', 2)
+hold on
+loglog(noise_vals_small, R1L_error_RF_compensated, 'o-', 'LineWidth', 2)
+loglog(noise_vals_small, R1L_error_opt, 'o-', 'LineWidth', 2)
+hold off
+legend('constant', 'RF compensated', 'Fisher information')
+xlabel('\sigma^2')
+ylabel('RMS error (average of 25 trials)')
+title('R1L estimation error comparison')
+tightfig(gcf)
+print(gcf, '-dpdf', 'R1L_error.pdf');
 
 %% Generate scatterplot of data 
 
