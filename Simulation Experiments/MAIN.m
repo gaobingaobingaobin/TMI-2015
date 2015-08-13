@@ -22,8 +22,6 @@ berkeley_colors = ...
         217, 102, 31;
         185, 211, 182]; 
      
-set(gca,'ColorOrder', berkeley_colors, 'NextPlot', 'replacechildren')
-
 
 %% Specify system model 
 
@@ -54,7 +52,6 @@ model.parameters_of_interest_nominal_values = [ kPL_val ];
 % (those parameters that are unknown but whose estimates we only care about
 % insofar as they allow us to estamate the parameters of interest) 
 model.nuisance_parameters = [R1P  R1L U];
-% load('u_est.mat') 
 
 input_params = [2.1430    3.4658   10.4105    3.2596];  % [gamma, beta, A0/1000, t0] 
 u_est = gamma_variate_input(input_params, 90/180*pi*ones(25, 1));  % function gamma_variate_input is meant to generate observed AIFs % calling it with a flip angle sequence of 90 degrees gives the true AIF
@@ -84,11 +81,8 @@ model.D = [0;
 
 % define input function shape  
 model.u = [U 0]; 
-% model.u = @(t) A0 * (t - t0)^alpha_1 *exp(-(t - t0)/beta_1); % gamma-variate input  
-% model.u = @(t) 10*rectangularPulse(0, 15, t);              % boxcar input 
 
 % define initial condition 
-% model.x0 = [P0; L0]; 
 model.x0 = [0; 0]; 
 
 % define repetition time
@@ -145,10 +139,10 @@ thetas_const = 15*pi/180*ones(2, model.N);
 figure
 set(gca,'ColorOrder', berkeley_colors(1:end, :), 'NextPlot', 'replacechildren')
 plot(model.TR*(0:model.N-1), u_est, 'o-', 'LineWidth', 2)
-title('Simulated input trajectory', 'FontSize', 18) 
-xlabel('time (s)', 'FontSize', 18)
-ylabel('u_t (au)', 'FontSize', 18)
-set(gca,'FontSize',14)
+title('Simulated input trajectory', 'FontSize', 20) 
+xlabel('time (s)', 'FontSize', 20)
+ylabel('u_t (au)', 'FontSize', 20)
+set(gca,'FontSize',20)
 tightfig(gcf);
 print(gcf, '-dpdf', 'sim_input.pdf');
 
@@ -156,12 +150,12 @@ print(gcf, '-dpdf', 'sim_input.pdf');
 figure
 set(gca,'ColorOrder', berkeley_colors(2:end, :), 'NextPlot', 'replacechildren')
 plot(model.TR*(0:model.N-1), x_true', 'o-', 'LineWidth', 2)
-title('Simulated state trajectories', 'FontSize', 18) 
-xlabel('time (s)', 'FontSize', 18)
-ylabel('x_t (au)', 'FontSize', 18)
-leg = legend('pyruvate (x_{1t})', 'lactate (x_{2t})'); 
-set(leg,'FontSize',14);
-set(gca,'FontSize',14);
+title('Simulated state trajectories', 'FontSize', 20) 
+xlabel('time (s)', 'FontSize', 20)
+ylabel('x_t (au)', 'FontSize', 20)
+leg = legend('pyruvate (x_{1t} )', 'lactate (x_{2t} )'); 
+set(leg,'FontSize',20);
+set(gca,'FontSize',20);
 tightfig(gcf);
 print(gcf, '-dpdf', 'sim_state.pdf');
 
@@ -170,12 +164,12 @@ print(gcf, '-dpdf', 'sim_state.pdf');
 figure
 set(gca,'ColorOrder', berkeley_colors(2:end, :), 'NextPlot', 'replacechildren')
 plot(model.TR*(0:model.N-1), y(1:2, :)', 'o-', 'LineWidth', 2)
-title('Simulated measurement trajectories', 'FontSize', 18) 
-xlabel('time (s)', 'FontSize', 18)
-ylabel('Y_t (au)', 'FontSize', 18)
-leg = legend('pyruvate (Y_{1t})', 'lactate (Y_{2t})'); 
-set(leg,'FontSize',14);
-set(gca,'FontSize',14);
+title('Simulated measurement trajectories', 'FontSize', 20) 
+xlabel('time (s)', 'FontSize', 20)
+ylabel('Y_t (au)', 'FontSize', 20)
+leg = legend('pyruvate (Y_{1t} )', 'lactate (Y_{2t} )'); 
+set(leg,'FontSize',20);
+set(gca,'FontSize',20);
 tightfig(gcf);
 print(gcf, '-dpdf', 'sim_measurement.pdf');
 
@@ -210,12 +204,12 @@ legend('pyruvate', 'lactate')
 figure
 set(gca,'ColorOrder', berkeley_colors(2:end, :), 'NextPlot', 'replacechildren')
 plot(model.TR*(0:model.N-1), x_true', 'o-', 'LineWidth', 2)
-title('Simulated state trajectories', 'FontSize', 18) 
-xlabel('time (s)', 'FontSize', 18)
-ylabel('x_t (au)', 'FontSize', 18)
+title('Simulated state trajectories', 'FontSize', 20) 
+xlabel('time (s)', 'FontSize', 20)
+ylabel('x_t (au)', 'FontSize', 20)
 leg = legend('pyruvate (x_{1t})', 'lactate (x_{2t})'); 
-set(leg,'FontSize',14);
-set(gca,'FontSize',14);
+set(leg,'FontSize',20);
+set(gca,'FontSize',20);
 tightfig(gcf);
 print(gcf, '-dpdf', 'sim_optimized_state.pdf');
 
@@ -224,12 +218,12 @@ print(gcf, '-dpdf', 'sim_optimized_state.pdf');
 figure
 set(gca,'ColorOrder', berkeley_colors(2:end, :), 'NextPlot', 'replacechildren')
 plot(model.TR*(0:model.N-1), y(1:2, :)', 'o-', 'LineWidth', 2)
-title('Simulated measurement trajectories', 'FontSize', 18) 
-xlabel('time (s)', 'FontSize', 18)
-ylabel('Y_t (au)', 'FontSize', 18)
+title('Simulated measurement trajectories', 'FontSize', 20) 
+xlabel('time (s)', 'FontSize', 20)
+ylabel('Y_t (au)', 'FontSize', 20)
 leg = legend('pyruvate (Y_{1t})', 'lactate (Y_{2t})'); 
-set(leg,'FontSize',14);
-set(gca,'FontSize',14);
+set(leg,'FontSize',20);
+set(gca,'FontSize',20);
 tightfig(gcf);
 print(gcf, '-dpdf', 'sim_optimized_measurement.pdf');
 
@@ -266,9 +260,9 @@ for noise = 1:length(noise_vals)
     noise
     obj = @(var) joint_least_squares(var(1:3), known_parameters, noise_vals(noise), thetas_opt, thetas_const,  thetas_RF_compensated, mean(y_thetas_opt(:, :, :, noise), 3), mean(y_thetas_const(:, :, :, noise), 3), mean(y_thetas_RF_compensated(:, :, :, noise), 3), var(4:3+model.N)/fact, var(4+model.N:3+2*model.N)/fact, var(4+model.N+model.N:3+model.N+model.N+model.N)/fact); 
     joint_param_est(:, noise) = fmincon(obj, var_initial, [], [], [], [], [0 0 0], [1 1 1], [], options);
-    param_of_interest(:, noise) = joint_param_est(1:3, noise)
-    u_est_opt(:, noise)         = joint_param_est(4:3+model.N, noise)
-    u_est_const(:, noise)       = joint_param_est(4+model.N:3+model.N+model.N, noise)
+    param_of_interest(:, noise)    = joint_param_est(1:3, noise)
+    u_est_opt(:, noise)            = joint_param_est(4:3+model.N, noise)
+    u_est_const(:, noise)          = joint_param_est(4+model.N:3+model.N+model.N, noise)
     u_est_RF_compensated(:, noise) = joint_param_est(4+model.N+model.N:3+model.N+model.N+model.N, noise)
 end
 
@@ -339,6 +333,8 @@ legend('constant', 'RF compensated', 'Fisher information')
 xlabel('\sigma^2')
 ylabel('RMS error (average of 25 trials)')
 title('kPL estimation error comparison')
+set(leg,'FontSize',16);
+set(gca,'FontSize',16);
 tightfig(gcf)
 print(gcf, '-dpdf', 'kPL_error.pdf');
 
@@ -353,6 +349,8 @@ legend('constant', 'RF compensated', 'Fisher information')
 xlabel('\sigma^2')
 ylabel('RMS error (average of 25 trials)')
 title('kTRANS estimation error comparison')
+set(leg,'FontSize',20);
+set(gca,'FontSize',20);
 tightfig(gcf)
 print(gcf, '-dpdf', 'kTRANS_error.pdf');
 
@@ -367,6 +365,8 @@ legend('constant', 'RF compensated', 'Fisher information')
 xlabel('\sigma^2')
 ylabel('RMS error (average of 25 trials)')
 title('R1P estimation error comparison')
+set(leg,'FontSize',20);
+set(gca,'FontSize',20);
 tightfig(gcf)
 print(gcf, '-dpdf', 'R1P_error.pdf');
 
@@ -381,6 +381,8 @@ legend('constant', 'RF compensated', 'Fisher information')
 xlabel('\sigma^2')
 ylabel('RMS error (average of 25 trials)')
 title('R1L estimation error comparison')
+set(leg,'FontSize',20);
+set(gca,'FontSize',20);
 tightfig(gcf)
 print(gcf, '-dpdf', 'R1L_error.pdf');
 
@@ -397,8 +399,8 @@ plot(parameters_of_interest_est_opt(:, 1, sigma_index), parameters_of_interest_e
 plot(kTRANS_val, kPL_val, 'kx', 'MarkerSize', 20, 'LineWidth', 4)
 hold off
 leg = legend('constant', 'RF compensated', 'Fisher information', 'ground truth'); 
-set(leg,'FontSize',14);
-set(gca,'FontSize',14);
+set(leg,'FontSize',20);
+set(gca,'FontSize',20);
 xlabel('kTRANS')
 ylabel('kPL')
 tightfig(gcf)
@@ -413,8 +415,8 @@ plot(parameters_of_interest_est_opt(:, 3, sigma_index), parameters_of_interest_e
 plot(R1P_val, R1L_val, 'kx', 'MarkerSize', 20, 'LineWidth', 4)
 hold off
 leg = legend('constant', 'RF compensated', 'Fisher information', 'ground truth');
-set(leg,'FontSize',14);
-set(gca,'FontSize',14);
+set(leg,'FontSize',20);
+set(gca,'FontSize',20);
 xlabel('R1P')
 ylabel('R1L')
 tightfig(gcf)

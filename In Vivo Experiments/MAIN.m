@@ -78,8 +78,8 @@ xlabel('acquisition number')
 ylabel('flip angle (degrees)')
 leg = legend('pyruvate', 'lactate'); 
 axis([0 30 0 100])
-set(leg,'FontSize',14);
-set(gca,'FontSize',14);
+set(leg,'FontSize',20);
+set(gca,'FontSize',20);
 tightfig(gcf);
 print(gcf, '-dpdf', 'flip_angles_fisher.pdf');
 
@@ -91,8 +91,8 @@ xlabel('acquisition number')
 ylabel('flip angle (degrees)')
 leg = legend('pyruvate', 'lactate'); 
 axis([0 30 0 100])
-set(leg,'FontSize',14);
-set(gca,'FontSize',14);
+set(leg,'FontSize',20);
+set(gca,'FontSize',20);
 tightfig(gcf);
 print(gcf, '-dpdf', 'flip_angles_T1_effective.pdf');
 
@@ -104,8 +104,8 @@ xlabel('acquisition number')
 ylabel('flip angle (degrees)')
 leg = legend('pyruvate', 'lactate'); 
 axis([0 30 0 100])
-set(leg,'FontSize',14);
-set(gca,'FontSize',14);
+set(leg,'FontSize',20);
+set(gca,'FontSize',20);
 tightfig(gcf);
 print(gcf, '-dpdf', 'flip_angles_RF_compensated.pdf');
 
@@ -141,7 +141,7 @@ plot(z*8/15, Pi_ideal, z*8/15, Pi, 'Linewidth', 2)
 xlabel('distance from center of slice (mm)')
 ylabel('fraction of flip angle applied') 
 title('Flip angle profile') 
-leg = legend('ideal profile', 'realistic profile') ; 
+leg = legend('ideal profile', 'actual profile') ; 
 axis([-15 15 0 1.05])
 set(leg,'FontSize',14);
 set(gca,'FontSize',14);
@@ -162,13 +162,22 @@ gold_im_h = cat(3, berkeley_colors(3, 1)*ones(size(im_h(:, :, 5))), berkeley_col
 h = imshow(gold_im_h);
 [X, Y] = meshgrid(1:size(pa, 1), 1:size(pa, 1)); 
 mask_left = ((X-x_tissue).^2 + (Y-y_tissue).^2 < r_tissue^2); 
-mask_left_im_h = kron(mask_left, [ones(15, 15) zeros(15, 1); zeros(1, 15) 0]); 
+% mask_left_im_h = kron(mask_left, [ones(15, 15) zeros(15, 1); zeros(1, 15) 0]); 
+mask_left_im_h = kron(mask_left, [ones(1, 16); ones(14, 1) zeros(14, 14) ones(14, 1); ones(1, 16)]); 
+mask_left_im_h(96, 112:161) = 1;
+mask_left_im_h(145, 112:161) = 1; 
+mask_left_im_h(96:145, 112) = 1; 
+mask_left_im_h(96:145, 161) = 1; 
 set(h, 'AlphaData', mask_left_im_h); 
 hold off
-text(coords(:, 1)*16+dx, coords(:, 2)*16+dy, num2str([1:9]'))
+% text(coords(:, 1)*16+dx, coords(:, 2)*16+dy, num2str([1:9]'), 'Color', berkeley_colors(3, :))
+for i=1:9
+textborder(coords(i, 1)*16+dx, coords(i, 2)*16+dy, num2str(i), berkeley_colors(3, :), 'k', 'FontSize', 12)
+end
+
 daspect([1 1 1])
 tightfig(gcf); 
-print(gcf, '-dpdf', 'voxels_extracted.pdf');
+print(gcf, '-dpng', 'voxels_extracted.png');
 
 
 %% Perform first step of parameter estimation process: fit a single AIF to all the voxels simultaneously 
@@ -318,8 +327,8 @@ ylabel('measured signal (au)')
 title('Output fit -- Fisher information-optimized flip angles')
 leg = legend('pyruvate (data)', 'lactate (data)', 'pyruvate (model)', 'lactate (model)');  
 axis([0 60 0 10000])
-set(leg,'FontSize',14);
-set(gca,'FontSize',14);
+set(leg,'FontSize',20);
+set(gca,'FontSize',20);
 tightfig(gcf);
 print(gcf, '-dpdf', 'fit_Fisher_information.pdf');
 
@@ -333,8 +342,8 @@ ylabel('measured signal (au)')
 title('Output fit -- T1 effective flip angles')
 leg = legend('pyruvate (data)', 'lactate (data)', 'pyruvate (model)', 'lactate (model)');  
 axis([0 60 0 10000])
-set(leg,'FontSize',14);
-set(gca,'FontSize',14);
+set(leg,'FontSize',20);
+set(gca,'FontSize',20);
 tightfig(gcf);
 print(gcf, '-dpdf', 'fit_T1_effective.pdf');
 
@@ -348,8 +357,8 @@ ylabel('measured signal (au)')
 title('Output fit -- RF compensated flip angles')
 leg = legend('pyruvate (data)', 'lactate (data)', 'pyruvate (model)', 'lactate (model)');  
 axis([0 60 0 10000])
-set(leg,'FontSize',14);
-set(gca,'FontSize',14);
+set(leg,'FontSize',20);
+set(gca,'FontSize',20);
 tightfig(gcf);
 print(gcf, '-dpdf', 'fit_RF_compensated.pdf');
 
@@ -378,21 +387,24 @@ end
 % plot kTRANS map 
 figure
 imagesc(parameter_map_Fisher_information(:, :, 1))
-title('Map of parameter kTRANS')
 axis off
 axis off
-colorbar
 daspect([1 1 1])
+set(leg,'FontSize',28);
+set(gca,'FontSize',28);
+caxis([0.00 0.15])
+colorbar
 print(gcf, '-dpdf', 'kTRANS_map_Fisher_information.pdf');
 
 % plot kPL map 
 figure
-imagesc(parameter_map_Fisher_information(:, :, 2))
-title('Map of parameter kPL')
+imagesc(parameter_map_Fisher_information(:, :, 2).*(parameter_map_Fisher_information(:, :, 1) > 0.02))
 axis off
 caxis([0.09 0.13])
 colorbar
 daspect([1 1 1])
+set(leg,'FontSize',28);
+set(gca,'FontSize',28);
 print(gcf, '-dpdf', 'kPL_map_Fisher_information.pdf');
 
 % plot kPL map superimposed over proton image 
@@ -410,6 +422,8 @@ colorbar
 hold off
 axis off
 daspect([1 1 1])
+set(leg,'FontSize',28);
+set(gca,'FontSize',28);
 print(gcf, '-dpdf', 'parameter_map_Fisher_information.pdf');
 
 
@@ -437,21 +451,24 @@ end
 % plot kTRANS map 
 figure
 imagesc(parameter_map_T1_effective(:, :, 1))
-title('Map of parameter kTRANS')
 axis off
 axis off
+caxis([0.00 0.15])
 colorbar
 daspect([1 1 1])
+set(leg,'FontSize',28);
+set(gca,'FontSize',28);
 print(gcf, '-dpdf', 'kTRANS_map_T1_effective.pdf');
 
 % plot kPL map 
 figure
-imagesc(parameter_map_T1_effective(:, :, 2))
-title('Map of parameter kPL')
+imagesc(parameter_map_T1_effective(:, :, 2).*(parameter_map_T1_effective(:, :, 1) > 0.02))
 axis off
 caxis([0.09 0.13])
 colorbar
 daspect([1 1 1])
+set(leg,'FontSize',28);
+set(gca,'FontSize',28);
 print(gcf, '-dpdf', 'kPL_map_T1_effective.pdf');
 
 % plot kPL map superimposed over proton image 
@@ -465,6 +482,8 @@ colorbar
 hold off
 axis off
 daspect([1 1 1])
+set(leg,'FontSize',28);
+set(gca,'FontSize',28);
 print(gcf, '-dpdf', 'parameter_map_T1_effective.pdf');
 
 
@@ -492,20 +511,23 @@ end
 % plot kTRANS map 
 figure
 imagesc(parameter_map_RF_compensated(:, :, 1))
-title('Map of parameter kTRANS')
 axis off
+caxis([0.00 0.15])
 colorbar
 daspect([1 1 1])
+set(leg,'FontSize',28);
+set(gca,'FontSize',28);
 print(gcf, '-dpdf', 'kTRANS_map_RF_compensated.pdf');
 
 % plot kPL map 
 figure
-imagesc(parameter_map_RF_compensated(:, :, 2))
-title('Map of parameter kPL')
+imagesc(parameter_map_RF_compensated(:, :, 2).*(parameter_map_RF_compensated(:, :, 1) > 0.02))
 axis off
 caxis([0.09 0.13])
 colorbar
 daspect([1 1 1])
+set(leg,'FontSize',28);
+set(gca,'FontSize',28);
 print(gcf, '-dpdf', 'kPL_map_RF_compensated.pdf');
 
 % plot kPL map superimposed over proton image 
@@ -519,6 +541,8 @@ colorbar
 hold off
 axis off
 daspect([1 1 1])
+set(leg,'FontSize',28);
+set(gca,'FontSize',28);
 print(gcf, '-dpdf', 'parameter_map_RF_compensated.pdf');
 
 
