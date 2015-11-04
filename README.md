@@ -1,7 +1,7 @@
 # TMI-2015
 
-Code to generate figures from the paper "Optimizing flip angles for metabolic 
-rate estimation in hyperpolarized carbon-13 MRI" 
+Code to generate figures from the paper [Optimizing flip angles for metabolic 
+                                         rate estimation in hyperpolarized carbon-13 MRI](http://www.eecs.berkeley.edu/~maidens/papers/2016TMI.pdf "TMI Paper")
 by John Maidens, Jeremy Gordon, Murat Arcak, and Peder Larson. 
 
 To generate figures, please ensure that the following MATLAB toolboxes are installed and included on your path: 
