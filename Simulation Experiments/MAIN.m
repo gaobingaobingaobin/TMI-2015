@@ -239,8 +239,9 @@ num_trials = 25
 var_initial = [ kPL_val, R1P_val, R1L_val, u_est', u_est', u_est']; 
 known_parameters = [kTRANS_val]; 
 
-% load other time-varying flip angle sequence
+% load other time-varying flip angle sequences 
 load('thetas_RF_compensated.mat') 
+load('thetas_T1_effective.mat') 
 
 % generate simulated data sets 
 for noise = 1:length(noise_vals)
@@ -430,7 +431,10 @@ print(gcf, '-dpdf', 'R1P_R1L_numerical_est.pdf');
 figure(13) 
 bc = berkeley_colors([2 4 3], :); 
 set(gca,'ColorOrder', bc, 'NextPlot', 'replacechildren')
-h_bar_graph = bar(log10(noise_vals_small),  [kPL_error_const./kPL_error_opt; kPL_error_RF_compensated./kPL_error_opt; ones(size(kPL_error_opt))]'); 
+h_bar_graph = bar(log10(noise_vals_small),  ...
+    [kPL_error_const./kPL_error_opt; 
+    kPL_error_RF_compensated./kPL_error_opt; 
+    ones(size(kPL_error_opt))]'); 
 for i = 1:length(h_bar_graph)
     set(h_bar_graph(i), 'FaceColor', bc(i, :)) 
 end
@@ -445,250 +449,53 @@ set(gca,'XTick', log10(noise_vals_small))
 tightfig(gcf)
 print(gcf, '-dpdf', 'kPL_error_bar.pdf');
 
-%% Test robustness for R1P
 
-R1P_vals = linspace(0.01, 0.09, 5); 
-[error_R1P_robustness_opt, error_R1P_robustness_const, ...
-    error_R1P_robustness_RF_compensated] = test_robustness(model, ...
-    R1P, R1P_vals , 25, thetas_opt, thetas_const, ...
-    thetas_RF_compensated, kTRANS_val, kPL_val, R1P_val, ...
-    R1L_val, u_est, sigma_2_star); 
-%%
-% plot bar graph of estimated error 
-bc = berkeley_colors([2 4 3], :); 
-figure(14)  
-set(gca,'ColorOrder', bc, 'NextPlot', 'replacechildren')
-h_bar_graph = bar(R1P_vals,  [error_R1P_robustness_const./error_R1P_robustness_opt; error_R1P_robustness_RF_compensated./error_R1P_robustness_opt; ones(size(error_R1P_robustness_opt))]'); 
-for i = 1:length(h_bar_graph)
-    set(h_bar_graph(i), 'FaceColor', bc(i,:)) 
-end
-ylabel('normalized RMS error') 
-xlabel('R_{1P}') 
-box on
-leg = legend('constant', 'RF compensated', 'Fisher information'); 
-set(leg,'FontSize',20);
-set(gca,'FontSize',20);
-set(gca,'XTick', R1P_vals)
-axis([0 0.1 0 5])
-tightfig(gcf)
-print(gcf, '-dpdf', 'robustness_R1P_bar.pdf');
+%% Perform robustness experiment 
 
-% plot line graph of absolute error
-figure(15)
-set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
-plot(R1P_vals, error_R1P_robustness_const, 'o-', 'LineWidth', 2)
-hold on
-plot(R1P_vals, error_R1P_robustness_RF_compensated, 'o-', 'LineWidth', 2)
-plot(R1P_vals, error_R1P_robustness_opt, 'o-', 'LineWidth', 2)
-hold off
-legend('constant', 'RF compensated', 'Fisher information')
-xlabel('R_{1P}')
-ylabel('RMS error (average of 25 trials)')
-% title('kPL estimation error comparison')
-set(leg,'FontSize',20);
-set(gca,'FontSize',20);
-set(gca,'XTick', R1P_vals)
-axis([0 0.1 0 0.06])
-tightfig(gcf)
-print(gcf, '-dpdf', 'robustness_R1P_line.pdf');
+syms input_scale t0
+parameters_to_vary = [kTRANS, kPL, R1P, R1L, input_scale, t0];  
+parameter_values = [linspace(0.01, 0.09, 5); 
+                    linspace(0.01, 0.11, 5);
+                    linspace(0.02, 0.08, 5);
+                    linspace(0.02, 0.08, 5);
+                    linspace(0.6, 1.4 , 5);
+                    linspace(0, 8, 5)]; 
+
+[ error_opt_array, error_const_array, error_RF_compensated_array, ...
+    error_T1_effective_array ] = ...
+    robustness_experiment(model, ...
+    parameters_to_vary, parameter_values , 25, thetas_opt, thetas_const, ...
+    thetas_RF_compensated, thetas_T1_effective, ...
+    kTRANS_val, kPL_val, R1P_val, R1L_val, u_est, sigma_2_star); 
+
+%% plot the results 
+xaxis_labels = {'k_{TRANS}', 'k_{PL}', 'R_{1P}', 'R_{1L}', '\kappa', 't_0'}; 
+axis_limits_line  = [0.00 0.10 1e-03 1e02; 
+                     0.00 0.12 0 0.07;
+                     0.01 0.09 0 0.07;
+                     0.01 0.09 0 0.07;
+                     0.5  1.5  0 0.07;
+                     -1   9    0 0.07]; 
+axis_limits_bar  = [0.00 0.10 0 5; 
+                0.00 0.12 0 5;
+                0.01 0.09 0 5;
+                0.01 0.09 0 5;
+                0.5  1.5  0 5;
+                -1   9    0 5]; 
+axis_type = {'ylog', 'linear', 'linear', 'linear', 'linear', 'linear'}; 
+plot_line_graphs(parameter_values, error_opt_array, error_const_array, ...
+    error_RF_compensated_array, error_T1_effective_array, ...
+    berkeley_colors, xaxis_labels, axis_limits_line, axis_type)
+plot_bar_graphs(parameter_values, error_opt_array, error_const_array, ...
+    error_RF_compensated_array, error_T1_effective_array, ...
+    berkeley_colors, xaxis_labels, axis_limits_bar)
 
 
-%% Test robustness for R1L
+% %% Compute numerical value of kPL improvement
+% 
+% mean(100*(kPL_error_const./kPL_error_opt - 1))
+% mean(100*(kPL_error_RF_compensated./kPL_error_opt - 1))
+% 
+% smallest_improvement = min(100*(kPL_error_RF_compensated./kPL_error_opt - 1))
 
-R1L_vals = linspace(0.01, 0.09, 5); 
-[error_R1L_robustness_opt, error_R1L_robustness_const, ...
-    error_R1L_robustness_RF_compensated] = test_robustness(model, ...
-    R1L, R1L_vals , 25, thetas_opt, thetas_const, ...
-    thetas_RF_compensated, kTRANS_val, kPL_val, R1P_val, ...
-    R1L_val, u_est, sigma_2_star); 
-
-%%
-% plot bar graph of relative error 
-bc = berkeley_colors([2 4 3], :); 
-figure(16)  
-set(gca,'ColorOrder', bc, 'NextPlot', 'replacechildren')
-h_bar_graph = bar(R1L_vals,  [error_R1L_robustness_const./error_R1L_robustness_opt; error_R1L_robustness_RF_compensated./error_R1P_robustness_opt; ones(size(error_R1L_robustness_opt))]'); 
-for i = 1:length(h_bar_graph)
-    set(h_bar_graph(i), 'FaceColor', bc(i,:)) 
-end
-ylabel('normalized RMS error') 
-xlabel('R_{1L}') 
-box on
-legend('constant', 'RF compensated', 'Fisher information')
-set(leg,'FontSize',20);
-set(gca,'FontSize',20);
-set(gca,'XTick', R1L_vals)
-axis([0 0.1 0 5])
-tightfig(gcf)
-print(gcf, '-dpdf', 'robustness_R1L_bar.pdf');
-
-% plot line graph of absolute error
-figure(17)
-set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
-plot(R1L_vals, error_R1L_robustness_const, 'o-', 'LineWidth', 2)
-hold on
-plot(R1L_vals, error_R1L_robustness_RF_compensated, 'o-', 'LineWidth', 2)
-plot(R1L_vals, error_R1L_robustness_opt, 'o-', 'LineWidth', 2)
-hold off
-legend('constant', 'RF compensated', 'Fisher information')
-xlabel('R_{1L}')
-ylabel('RMS error (average of 25 trials)')
-% title('kPL estimation error comparison')
-set(leg,'FontSize',20);
-set(gca,'FontSize',20);
-set(gca,'XTick', R1L_vals)
-axis([0 0.1 0 0.12])
-tightfig(gcf)
-print(gcf, '-dpdf', 'robustness_R1L_line.pdf');
-
-
-%% Test robustness for kTRANS
-
-kTRANS_vals = linspace(0.01, 0.09, 5); 
-[error_kTRANS_robustness_opt, error_kTRANS_robustness_const, ...
-    error_kTRANS_robustness_RF_compensated] = test_robustness(model, ...
-    kTRANS, kTRANS_vals , 25, thetas_opt, thetas_const, ...
-    thetas_RF_compensated, kTRANS_val, kPL_val, R1P_val, ...
-    R1L_val, u_est, sigma_2_star); 
-%%
-% plot bar graph of relative error 
-bc = berkeley_colors([2 4 3], :); 
-figure(18)  
-set(gca,'ColorOrder', bc, 'NextPlot', 'replacechildren')
-h_bar_graph = bar(kTRANS_vals,  [error_kTRANS_robustness_const./error_kTRANS_robustness_opt; error_kTRANS_robustness_RF_compensated./error_kTRANS_robustness_opt; ones(size(error_kTRANS_robustness_opt))]'); 
-for i = 1:length(h_bar_graph)
-    set(h_bar_graph(i), 'FaceColor', bc(i,:)) 
-end
-ylabel('normalized RMS error') 
-xlabel('k_{TRANS}') 
-box on
-leg = legend('constant', 'RF compensated', 'Fisher information'); 
-set(leg,'FontSize',20);
-set(gca,'FontSize',20);
-set(gca,'XTick', kTRANS_vals)
-axis([0 0.1 0 5])
-tightfig(gcf)
-print(gcf, '-dpdf', 'robustness_kTRANS_bar.pdf');
-
-% plot line graph of absolute error
-figure(19)
-set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
-semilogy(kTRANS_vals, error_kTRANS_robustness_const, 'o-', 'LineWidth', 2)
-hold on
-semilogy(kTRANS_vals, error_kTRANS_robustness_RF_compensated, 'o-', 'LineWidth', 2)
-semilogy(kTRANS_vals, error_kTRANS_robustness_opt, 'o-', 'LineWidth', 2)
-hold off
-legend('constant', 'RF compensated', 'Fisher information')
-xlabel('k_{TRANS}')
-ylabel('RMS error (average of 25 trials)')
-% title('kPL estimation error comparison')
-leg = legend('constant', 'RF compensated', 'Fisher information'); 
-set(leg,'FontSize',20);
-set(gca,'FontSize',20);
-set(gca,'XTick', kTRANS_vals)
-% axis([0 0.1 0 5])
-tightfig(gcf)
-print(gcf, '-dpdf', 'robustness_kTRANS_line.pdf');
-
-
-%% Test robustness for kPL
-
-kPL_vals = linspace(0.03, 0.11, 5); 
-[error_kPL_robustness_opt, error_kPL_robustness_const, ...
-    error_kPL_robustness_RF_compensated] = test_robustness(model, ...
-    kPL, kPL_vals , 25, thetas_opt, thetas_const, ...
-    thetas_RF_compensated, kTRANS_val, kPL_val, R1P_val, ...
-    R1L_val, u_est, sigma_2_star); 
-%%
-% plot bar graph of estimated error 
-bc = berkeley_colors([2 4 3], :); 
-figure(20)  
-set(gca,'ColorOrder', bc, 'NextPlot', 'replacechildren')
-h_bar_graph = bar(kPL_vals,  [error_kPL_robustness_const./error_kPL_robustness_opt; error_kPL_robustness_RF_compensated./error_kPL_robustness_opt; ones(size(error_kPL_robustness_opt))]'); 
-for i = 1:length(h_bar_graph)
-    set(h_bar_graph(i), 'FaceColor', bc(i,:)) 
-end
-ylabel('normalized RMS error') 
-xlabel('k_{PL}') 
-box on
-leg = legend('constant', 'RF compensated', 'Fisher information'); 
-set(leg,'FontSize',20);
-set(gca,'FontSize',20);
-set(gca,'XTick', kPL_vals)
-axis([0.02 0.12 0 5])
-tightfig(gcf)
-print(gcf, '-dpdf', 'robustness_kPL_bar.pdf');
-
-% plot line graph of absolute error
-figure(21)
-set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
-plot(kPL_vals, error_kPL_robustness_const, 'o-', 'LineWidth', 2)
-hold on
-plot(kPL_vals, error_kPL_robustness_RF_compensated, 'o-', 'LineWidth', 2)
-plot(kPL_vals, error_kPL_robustness_opt, 'o-', 'LineWidth', 2)
-hold off
-xlabel('k_{PL}')
-ylabel('RMS error (average of 25 trials)')
-leg = legend('constant', 'RF compensated', 'Fisher information'); 
-set(leg,'FontSize',20);
-set(gca,'FontSize',20);
-set(gca,'XTick', kPL_vals)
-axis([0.02 0.12 0 0.06])
-tightfig(gcf)
-print(gcf, '-dpdf', 'robustness_kPL_line.pdf');
-
-
-%% Test robustness for input_scale
-syms input_scale
-input_scale_vals = linspace(0.6, 1.4 , 5); 
-[error_input_scale_robustness_opt, error_input_scale_robustness_const, ...
-    error_input_scale_robustness_RF_compensated] = test_robustness(model, ...
-    input_scale, input_scale_vals , 25, thetas_opt, thetas_const, ...
-    thetas_RF_compensated, kTRANS_val, kPL_val, R1P_val, ...
-    R1L_val, u_est, sigma_2_star); 
-%%
-% plot bar graph of estimated error 
-bc = berkeley_colors([2 4 3], :); 
-figure(22)  
-set(gca,'ColorOrder', bc, 'NextPlot', 'replacechildren')
-h_bar_graph = bar(input_scale_vals,  [error_input_scale_robustness_const./error_input_scale_robustness_opt; error_input_scale_robustness_RF_compensated./error_input_scale_robustness_opt; ones(size(error_input_scale_robustness_opt))]'); 
-for i = 1:length(h_bar_graph)
-    set(h_bar_graph(i), 'FaceColor', bc(i,:)) 
-end
-ylabel('normalized RMS error') 
-xlabel('input time scaling parameter') 
-box on
-leg = legend('constant', 'RF compensated', 'Fisher information'); 
-set(leg,'FontSize',20);
-set(gca,'FontSize',20);
-set(gca,'XTick', input_scale_vals)
-axis([0.5 1.5 0 5])
-tightfig(gcf)
-print(gcf, '-dpdf', 'robustness_input_scale_bar.pdf');
-
-% plot line graph of absolute error
-figure(23)
-set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
-plot(input_scale_vals, error_input_scale_robustness_const, 'o-', 'LineWidth', 2)
-hold on
-plot(input_scale_vals, error_input_scale_robustness_RF_compensated, 'o-', 'LineWidth', 2)
-plot(input_scale_vals, error_input_scale_robustness_opt, 'o-', 'LineWidth', 2)
-hold off
-legend('constant', 'RF compensated', 'Fisher information')
-xlabel('input time scaling parameter')
-ylabel('RMS error (average of 25 trials)')
-leg = legend('constant', 'RF compensated', 'Fisher information'); 
-set(leg,'FontSize',20);
-set(gca,'FontSize',20);
-set(gca,'XTick', input_scale_vals)
-axis([0.5 1.5 0 0.06])
-tightfig(gcf)
-print(gcf, '-dpdf', 'robustness_input_scale_line.pdf');
-
-
-%% Compute numerical value of kPL improvement
-
-mean(100*(kPL_error_const./kPL_error_opt - 1))
-mean(100*(kPL_error_RF_compensated./kPL_error_opt - 1))
-
-smallest_improvement = min(100*(kPL_error_RF_compensated./kPL_error_opt - 1))
+% smallest_improvement = min(100*(kPL_error_RF_compensated./kPL_error_opt - 1))
