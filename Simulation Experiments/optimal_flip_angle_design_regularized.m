@@ -22,8 +22,10 @@ function [thetas_opt, objective_value, q_opt] = optimal_flip_angle_design_regula
     % Optimal flip angle design for total SNR design criterion 
     if strcmp(design_criterion,'totalSNR')
         % define objective function for total SNR 
-        obj = @(q) -sum(sum(trajectories(model.flip_angle_input_matrix*q, model.Ad_nom, ...
-            model.Bd_nom, model.C_nom, model.D_nom, model.u_fun(model.TR*0:model.N), model.x0_nom, model.N)));
+        u = double(subs(model.u, [model.parameters_of_interest, model.nuisance_parameters], [model.parameters_of_interest_nominal_values, model.nuisance_parameters_nominal_values])); 
+        obj = @(q) -sum(sum(trajectories(model.flip_angle_input_matrix*q, ...
+            model.Ad_nom, model.Bd_nom, model.C_nom, ...
+            model.D_nom, u, model.x0_nom, model.N)));
 
         % initialize optimization problem 
         if nargin < 4
