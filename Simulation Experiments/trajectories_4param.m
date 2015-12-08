@@ -30,10 +30,22 @@ TR = 2;
 N = 30;
 
 % discretize system
-sys = ss(A, B, C, D);
-sysd = c2d(sys, TR);
-Ad = sysd.A;  
-Bd = sysd.B; 
+try
+    sys = ss(A, B, C, D);
+    sysd = c2d(sys, TR);
+    Ad = sysd.A;
+    Bd = sysd.B;
+catch 
+    warning('First-order discretization used')
+    kPL
+    kTRANS
+    R1P
+    R1L
+    alpha 
+    u
+    Ad = eye(size(A, 1)) + TR*A; 
+    Bd = TR*B; 
+end
 
 %% Compute trajectories
 

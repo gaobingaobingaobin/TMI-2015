@@ -242,6 +242,7 @@ known_parameters = [kTRANS_val];
 % load other time-varying flip angle sequences 
 load('thetas_RF_compensated.mat') 
 load('thetas_T1_effective.mat') 
+load('thetas_SNR.mat') 
 
 % generate simulated data sets 
 for noise = 1:length(noise_vals)
@@ -452,50 +453,50 @@ print(gcf, '-dpdf', 'kPL_error_bar.pdf');
 
 %% Perform robustness experiment 
 
-syms input_scale t0
-parameters_to_vary = [kTRANS, kPL, R1P, R1L, input_scale, t0];  
+syms input_scale t0 B1
+parameters_to_vary = [kTRANS, kPL, R1P, R1L, input_scale, B1];  
 parameter_values = [linspace(0.01, 0.09, 5); 
-                    linspace(0.01, 0.11, 5);
+                    linspace(0.03, 0.11, 5);
                     linspace(0.02, 0.08, 5);
                     linspace(0.02, 0.08, 5);
                     linspace(0.6, 1.4 , 5);
-                    linspace(0, 8, 5)]; 
+                    linspace(0.9, 1.1, 5)]; 
+
 
 [ error_opt_array, error_const_array, error_RF_compensated_array, ...
-    error_T1_effective_array ] = ...
+    error_T1_effective_array, error_SNR_array ] = ...
     robustness_experiment(model, ...
     parameters_to_vary, parameter_values , 25, thetas_opt, thetas_const, ...
-    thetas_RF_compensated, thetas_T1_effective, ...
+    thetas_RF_compensated, thetas_T1_effective, thetas_SNR, ...
     kTRANS_val, kPL_val, R1P_val, R1L_val, u_est, sigma_2_star); 
 
-%% plot the results 
-xaxis_labels = {'k_{TRANS}', 'k_{PL}', 'R_{1P}', 'R_{1L}', '\kappa', 't_0'}; 
+
+%% Plot the results of robustness experiment 
+
+xaxis_labels = {'k_{TRANS}', 'k_{PL}', 'R_{1P}', 'R_{1L}', '\kappa', 'B_1'}; 
 axis_limits_line  = [0.00 0.10 1e-03 1e02; 
-                     0.00 0.12 0 0.07;
+                     0.02 0.12 0 0.07;
                      0.01 0.09 0 0.07;
                      0.01 0.09 0 0.07;
                      0.5  1.5  0 0.07;
-                     -1   9    0 0.07]; 
+                     0.85 1.15 0 0.07]; 
 axis_limits_bar  = [0.00 0.10 0 5; 
-                0.00 0.12 0 5;
+                0.02 0.12 0 5;
                 0.01 0.09 0 5;
                 0.01 0.09 0 5;
                 0.5  1.5  0 5;
-                -1   9    0 5]; 
+                0.85 1.15 0 5]; 
 axis_type = {'ylog', 'linear', 'linear', 'linear', 'linear', 'linear'}; 
 plot_line_graphs(parameter_values, error_opt_array, error_const_array, ...
-    error_RF_compensated_array, error_T1_effective_array, ...
+    error_RF_compensated_array, error_T1_effective_array, error_SNR_array,  ...
     berkeley_colors, xaxis_labels, axis_limits_line, axis_type)
 plot_bar_graphs(parameter_values, error_opt_array, error_const_array, ...
-    error_RF_compensated_array, error_T1_effective_array, ...
+    error_RF_compensated_array, error_T1_effective_array, error_SNR_array, ...
     berkeley_colors, xaxis_labels, axis_limits_bar)
 
 
-% %% Compute numerical value of kPL improvement
-% 
-% mean(100*(kPL_error_const./kPL_error_opt - 1))
-% mean(100*(kPL_error_RF_compensated./kPL_error_opt - 1))
-% 
-% smallest_improvement = min(100*(kPL_error_RF_compensated./kPL_error_opt - 1))
 
-% smallest_improvement = min(100*(kPL_error_RF_compensated./kPL_error_opt - 1))
+%% Compute numerical value of kPL improvement
+ 
+percent_improvement_over_constant_flip_angle_sequence       = mean(100*(kPL_error_const./kPL_error_opt - 1))
+percent_improvement_over_RF_compensated_flip_angle_sequence = mean(100*(kPL_error_RF_compensated./kPL_error_opt - 1))
