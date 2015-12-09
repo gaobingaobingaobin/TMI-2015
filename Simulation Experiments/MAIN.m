@@ -230,167 +230,29 @@ tightfig(gcf);
 print(gcf, '-dpdf', 'sim_optimized_measurement.pdf');
 
 
-%% Estimate model parameters from simulated data 
+%% Perform accuracy experiment 
 
-goodness_of_fit_criterion = 'maximum-likelihood'; 
-noise_vals = sort([logspace(3, 6, 5), sigma_2_star ])
-num_trials = 25
-
-var_initial = [ kPL_val, R1P_val, R1L_val, u_est', u_est', u_est']; 
-known_parameters = [kTRANS_val]; 
+noise_vals = sort([logspace(3, 6, 5), sigma_2_star ]);
+num_trials = 25;
+syms sigma_2
 
 % load other time-varying flip angle sequences 
 load('thetas_RF_compensated.mat') 
 load('thetas_T1_effective.mat') 
 load('thetas_SNR.mat') 
 
-% generate simulated data sets 
-for noise = 1:length(noise_vals)
-    noise
-    model.noise_parameters = noise_vals(noise)*[1 1]; 
-    for trial=1:num_trials
-        y_thetas_opt(:, :, trial, noise)   = generate_data(model, model.flip_angle_input_matrix*thetas_opt); 
-        y_thetas_const(:, :, trial, noise) = generate_data(model, model.flip_angle_input_matrix*thetas_const); 
-        y_thetas_RF_compensated(:, :, trial, noise) = generate_data(model, model.flip_angle_input_matrix*thetas_RF_compensated); 
-    end
-end
+[ parameters_of_interest_est_opt, ...
+    parameters_of_interest_est_const, ...
+    parameters_of_interest_est_RF_compensated, ...
+    parameters_of_interest_est_T1_effective, ...
+    parameters_of_interest_est_SNR] ...
+         = test_accuracy(model, sigma_2, noise_vals, ...
+         num_trials, thetas_opt, thetas_const, thetas_RF_compensated, ...
+         thetas_T1_effective, thetas_SNR, ...
+         kTRANS_val, kPL_val, R1P_val, R1L_val, u_est, sigma_2_star ); 
 
 
-%% Estimate nuisance parameters jointly from collected data sets  
-
-fact = 1
-options = optimset( 'Display', 'iter', 'MaxFunEvals', 10000); 
-for noise = 1:length(noise_vals)
-    noise
-    obj = @(var) joint_least_squares(var(1:3), known_parameters, noise_vals(noise), thetas_opt, thetas_const,  thetas_RF_compensated, mean(y_thetas_opt(:, :, :, noise), 3), mean(y_thetas_const(:, :, :, noise), 3), mean(y_thetas_RF_compensated(:, :, :, noise), 3), var(4:3+model.N)/fact, var(4+model.N:3+2*model.N)/fact, var(4+model.N+model.N:3+model.N+model.N+model.N)/fact); 
-    joint_param_est(:, noise) = fmincon(obj, var_initial, [], [], [], [], [0 0 0], [1 1 1], [], options);
-    param_of_interest(:, noise)    = joint_param_est(1:3, noise)
-    u_est_opt(:, noise)            = joint_param_est(4:3+model.N, noise)
-    u_est_const(:, noise)          = joint_param_est(4+model.N:3+model.N+model.N, noise)
-    u_est_RF_compensated(:, noise) = joint_param_est(4+model.N+model.N:3+model.N+model.N+model.N, noise)
-end
-
-
-%% Fit parameters of interest voxel-wise 
-
-var_initial = [kTRANS_val, kPL_val, R1P_val, R1L_val]; 
-known_parameters = []; 
-for noise = 1:length(noise_vals)
-    for trial=1:num_trials
-        
-        [noise, trial]
-  
-        obj = @(var) negative_log_likelihood_rician(var, known_parameters, noise_vals(noise), thetas_opt, y_thetas_opt(:, :, trial, noise), u_est_opt(:, noise)); 
-        options = optimset( 'Display', 'iter', 'MaxFunEvals', 1000); 
-        parameters_of_interest_est_opt(trial, :, noise) = fminunc(obj, var_initial, options);
-        
-        obj = @(var) negative_log_likelihood_rician(var, known_parameters, noise_vals(noise), thetas_const, y_thetas_const(:, :, trial, noise), u_est_const(:, noise)); 
-        options = optimset( 'Display', 'iter', 'MaxFunEvals', 1000); 
-        parameters_of_interest_est_const(trial, :, noise) = fminunc(obj, var_initial, options);
-               
-        obj = @(var) negative_log_likelihood_rician(var, known_parameters, noise_vals(noise), thetas_RF_compensated, y_thetas_RF_compensated(:, :, trial, noise), u_est_const(:, noise)); 
-        options = optimset( 'Display', 'iter', 'MaxFunEvals', 1000); 
-        parameters_of_interest_est_RF_compensated(trial, :, noise) = fminunc(obj, var_initial, options);
-    end
-end
-
-
-%% Generate plots of parameter error 
-
-for noise = 1:length(noise_vals)
-        kPL_error_opt(noise)               = sqrt(mean(abs(parameters_of_interest_est_opt(:, 2, noise)             - kPL_val).^2)); 
-        kPL_error_const(noise)             = sqrt(mean(abs(parameters_of_interest_est_const(:, 2, noise)           - kPL_val).^2)); 
-        kPL_error_RF_compensated(noise)    = sqrt(mean(abs(parameters_of_interest_est_RF_compensated(:, 2, noise)  - kPL_val).^2)); 
-        kTRANS_error_opt(noise)            = sqrt(mean(abs(parameters_of_interest_est_opt(:, 1, noise)             - kTRANS_val).^2)); 
-        kTRANS_error_const(noise)          = sqrt(mean(abs(parameters_of_interest_est_const(:, 1, noise)           - kTRANS_val).^2)); 
-        kTRANS_error_RF_compensated(noise) = sqrt(mean(abs(parameters_of_interest_est_RF_compensated(:, 1, noise)  - kTRANS_val).^2)); 
-        R1P_error_opt(noise)               = sqrt(mean(abs(parameters_of_interest_est_opt(:, 3, noise)             - R1P_val).^2)); 
-        R1P_error_const(noise)             = sqrt(mean(abs(parameters_of_interest_est_const(:, 3, noise)           - R1P_val).^2)); 
-        R1P_error_RF_compensated(noise)    = sqrt(mean(abs(parameters_of_interest_est_RF_compensated(:, 3, noise)  - R1P_val).^2)); 
-        R1L_error_opt(noise)               = sqrt(mean(abs(parameters_of_interest_est_opt(:, 4, noise)             - R1L_val).^2)); 
-        R1L_error_const(noise)             = sqrt(mean(abs(parameters_of_interest_est_const(:, 4, noise)           - R1L_val).^2)); 
-        R1L_error_RF_compensated(noise)    = sqrt(mean(abs(parameters_of_interest_est_RF_compensated(:, 4, noise)  - R1L_val).^2)); 
-end
-
-kPL_error_opt               = kPL_error_opt([1:2 4:end]);
-kPL_error_const             = kPL_error_const([1:2 4:end]);
-kPL_error_RF_compensated    = kPL_error_RF_compensated([1:2 4:end]);
-kTRANS_error_opt            = kTRANS_error_opt([1:2 4:end]);
-kTRANS_error_const          = kTRANS_error_const([1:2 4:end]);
-kTRANS_error_RF_compensated = kTRANS_error_RF_compensated([1:2 4:end]);
-R1P_error_opt               = R1P_error_opt([1:2 4:end]);
-R1P_error_const             = R1P_error_const([1:2 4:end]);
-R1P_error_RF_compensated    = R1P_error_RF_compensated([1:2 4:end]);
-R1L_error_opt               = R1L_error_opt([1:2 4:end]);
-R1L_error_const             = R1L_error_const([1:2 4:end]);
-R1L_error_RF_compensated    = R1L_error_RF_compensated([1:2 4:end]);
-noise_vals_small = noise_vals([1:2 4:end]);
-
-figure
-set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
-loglog(noise_vals_small, kPL_error_const, 'o-', 'LineWidth', 2)
-hold on
-loglog(noise_vals_small, kPL_error_RF_compensated, 'o-', 'LineWidth', 2)
-loglog(noise_vals_small, kPL_error_opt, 'o-', 'LineWidth', 2)
-hold off
-legend('constant', 'RF compensated', 'Fisher information')
-xlabel('\sigma^2')
-ylabel('RMS error (average of 25 trials)')
-% title('kPL estimation error comparison')
-set(leg,'FontSize',20);
-set(gca,'FontSize',20);
-tightfig(gcf)
-print(gcf, '-dpdf', 'kPL_error.pdf');
-
-figure
-set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
-loglog(noise_vals_small, kTRANS_error_const, 'o-', 'LineWidth', 2)
-hold on
-loglog(noise_vals_small, kTRANS_error_RF_compensated, 'o-', 'LineWidth', 2)
-loglog(noise_vals_small, kTRANS_error_opt, 'o-', 'LineWidth', 2)
-hold off
-legend('constant', 'RF compensated', 'Fisher information')
-xlabel('\sigma^2')
-ylabel('RMS error (average of 25 trials)')
-title('kTRANS estimation error comparison')
-set(leg,'FontSize',20);
-set(gca,'FontSize',20);
-tightfig(gcf)
-print(gcf, '-dpdf', 'kTRANS_error.pdf');
-
-figure
-set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
-loglog(noise_vals_small, R1P_error_const, 'o-', 'LineWidth', 2)
-hold on
-loglog(noise_vals_small, R1P_error_RF_compensated, 'o-', 'LineWidth', 2)
-loglog(noise_vals_small, R1P_error_opt, 'o-', 'LineWidth', 2)
-hold off
-legend('constant', 'RF compensated', 'Fisher information')
-xlabel('\sigma^2')
-ylabel('RMS error (average of 25 trials)')
-title('R1P estimation error comparison')
-set(leg,'FontSize',20);
-set(gca,'FontSize',20);
-tightfig(gcf)
-print(gcf, '-dpdf', 'R1P_error.pdf');
-
-figure
-set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
-loglog(noise_vals_small, R1L_error_const, 'o-', 'LineWidth', 2)
-hold on
-loglog(noise_vals_small, R1L_error_RF_compensated, 'o-', 'LineWidth', 2)
-loglog(noise_vals_small, R1L_error_opt, 'o-', 'LineWidth', 2)
-hold off
-legend('constant', 'RF compensated', 'Fisher information')
-xlabel('\sigma^2')
-ylabel('RMS error (average of 25 trials)')
-title('R1L estimation error comparison')
-set(leg,'FontSize',20);
-set(gca,'FontSize',20);
-tightfig(gcf)
-print(gcf, '-dpdf', 'R1L_error.pdf');
-
-%% Generate scatterplot of data 
+ %% Generate scatterplot of parameter estimates  
 
 sigma_index = 3 % index where true noise value lies 
 
@@ -425,30 +287,263 @@ xlabel('R1P')
 ylabel('R1L')
 tightfig(gcf)
 print(gcf, '-dpdf', 'R1P_R1L_numerical_est.pdf');
+     
 
+%% Generate error plots
 
-%% Plot bar graph of estimated error 
-
-figure(13) 
-bc = berkeley_colors([2 4 3], :); 
-set(gca,'ColorOrder', bc, 'NextPlot', 'replacechildren')
-h_bar_graph = bar(log10(noise_vals_small),  ...
-    [kPL_error_const./kPL_error_opt; 
-    kPL_error_RF_compensated./kPL_error_opt; 
-    ones(size(kPL_error_opt))]'); 
-for i = 1:length(h_bar_graph)
-    set(h_bar_graph(i), 'FaceColor', bc(i, :)) 
-end
-ylabel('normalized RMS error') 
-xlabel('log_{10} \sigma^2') 
-legend('constant', 'RF compensated', 'Fisher information')
-box on
-set(leg,'FontSize',20);
-set(gca,'FontSize',20);
-axis([2.5 6.5 0 5])
-set(gca,'XTick', log10(noise_vals_small))
-tightfig(gcf)
-print(gcf, '-dpdf', 'kPL_error_bar.pdf');
+error_plot(1, kTRANS_val, 'kTRANS', ...
+        noise_vals([1:2 4:end]), berkeley_colors, ...
+        parameters_of_interest_est_opt(:, :, [1:2 4:end]), ...
+        parameters_of_interest_est_const(:, :, [1:2 4:end]), ...
+        parameters_of_interest_est_RF_compensated(:, :, [1:2 4:end]), ...
+        parameters_of_interest_est_T1_effective(:, :, [1:2 4:end]), ...
+        parameters_of_interest_est_SNR(:, :, [1:2 4:end]))
+    
+error_plot(2, kPL_val, 'kPL', ...
+        noise_vals([1:2 4:end]), berkeley_colors, ...
+        parameters_of_interest_est_opt(:, :, [1:2 4:end]), ...
+        parameters_of_interest_est_const(:, :, [1:2 4:end]), ...
+        parameters_of_interest_est_RF_compensated(:, :, [1:2 4:end]), ...
+        parameters_of_interest_est_T1_effective(:, :, [1:2 4:end]), ...
+        parameters_of_interest_est_SNR(:, :, [1:2 4:end]))
+    
+error_plot(3, R1P_val, 'R1P', ...
+        noise_vals([1:2 4:end]), berkeley_colors, ...
+        parameters_of_interest_est_opt(:, :, [1:2 4:end]), ...
+        parameters_of_interest_est_const(:, :, [1:2 4:end]), ...
+        parameters_of_interest_est_RF_compensated(:, :, [1:2 4:end]), ...
+        parameters_of_interest_est_T1_effective(:, :, [1:2 4:end]), ...
+        parameters_of_interest_est_SNR(:, :, [1:2 4:end]))
+    
+error_plot(4, R1L_val, 'R1L', ...
+        noise_vals([1:2 4:end]), berkeley_colors, ...
+        parameters_of_interest_est_opt(:, :, [1:2 4:end]), ...
+        parameters_of_interest_est_const(:, :, [1:2 4:end]), ...
+        parameters_of_interest_est_RF_compensated(:, :, [1:2 4:end]), ...
+        parameters_of_interest_est_T1_effective(:, :, [1:2 4:end]), ...
+        parameters_of_interest_est_SNR(:, :, [1:2 4:end]))
+    % 
+%     
+% %% Estimate model parameters from simulated data 
+% 
+% goodness_of_fit_criterion = 'maximum-likelihood'; 
+% noise_vals = sort([logspace(3, 6, 5), sigma_2_star ])
+% num_trials = 25
+% 
+% var_initial = [ kPL_val, R1P_val, R1L_val, u_est', u_est', u_est']; 
+% known_parameters = [kTRANS_val]; 
+% 
+% % load other time-varying flip angle sequences 
+% load('thetas_RF_compensated.mat') 
+% load('thetas_T1_effective.mat') 
+% load('thetas_SNR.mat') 
+% 
+% % generate simulated data sets 
+% for noise = 1:length(noise_vals)
+%     noise
+%     model.noise_parameters = noise_vals(noise)*[1 1]; 
+%     for trial=1:num_trials
+%         y_thetas_opt(:, :, trial, noise)   = generate_data(model, model.flip_angle_input_matrix*thetas_opt); 
+%         y_thetas_const(:, :, trial, noise) = generate_data(model, model.flip_angle_input_matrix*thetas_const); 
+%         y_thetas_RF_compensated(:, :, trial, noise) = generate_data(model, model.flip_angle_input_matrix*thetas_RF_compensated); 
+%     end
+% end
+% 
+% 
+% %% Estimate nuisance parameters jointly from collected data sets  
+% 
+% fact = 1
+% options = optimset( 'Display', 'iter', 'MaxFunEvals', 10000); 
+% for noise = 1:length(noise_vals)
+%     noise
+%     obj = @(var) joint_least_squares(var(1:3), known_parameters, noise_vals(noise), thetas_opt, thetas_const,  thetas_RF_compensated, mean(y_thetas_opt(:, :, :, noise), 3), mean(y_thetas_const(:, :, :, noise), 3), mean(y_thetas_RF_compensated(:, :, :, noise), 3), var(4:3+model.N)/fact, var(4+model.N:3+2*model.N)/fact, var(4+model.N+model.N:3+model.N+model.N+model.N)/fact); 
+%     joint_param_est(:, noise) = fmincon(obj, var_initial, [], [], [], [], [0 0 0], [1 1 1], [], options);
+%     param_of_interest(:, noise)    = joint_param_est(1:3, noise)
+%     u_est_opt(:, noise)            = joint_param_est(4:3+model.N, noise)
+%     u_est_const(:, noise)          = joint_param_est(4+model.N:3+model.N+model.N, noise)
+%     u_est_RF_compensated(:, noise) = joint_param_est(4+model.N+model.N:3+model.N+model.N+model.N, noise)
+% end
+% 
+% 
+% %% Fit parameters of interest voxel-wise 
+% 
+% var_initial = [kTRANS_val, kPL_val, R1P_val, R1L_val]; 
+% known_parameters = []; 
+% for noise = 1:length(noise_vals)
+%     for trial=1:num_trials
+%         
+%         [noise, trial]
+%   
+%         obj = @(var) negative_log_likelihood_rician(var, known_parameters, noise_vals(noise), thetas_opt, y_thetas_opt(:, :, trial, noise), u_est_opt(:, noise)); 
+%         options = optimset( 'Display', 'iter', 'MaxFunEvals', 1000); 
+%         parameters_of_interest_est_opt(trial, :, noise) = fminunc(obj, var_initial, options);
+%         
+%         obj = @(var) negative_log_likelihood_rician(var, known_parameters, noise_vals(noise), thetas_const, y_thetas_const(:, :, trial, noise), u_est_const(:, noise)); 
+%         options = optimset( 'Display', 'iter', 'MaxFunEvals', 1000); 
+%         parameters_of_interest_est_const(trial, :, noise) = fminunc(obj, var_initial, options);
+%                
+%         obj = @(var) negative_log_likelihood_rician(var, known_parameters, noise_vals(noise), thetas_RF_compensated, y_thetas_RF_compensated(:, :, trial, noise), u_est_const(:, noise)); 
+%         options = optimset( 'Display', 'iter', 'MaxFunEvals', 1000); 
+%         parameters_of_interest_est_RF_compensated(trial, :, noise) = fminunc(obj, var_initial, options);
+%     end
+% end
+% 
+% 
+% %% Generate plots of parameter error 
+% 
+% for noise = 1:length(noise_vals)
+%         kPL_error_opt(noise)               = sqrt(mean(abs(parameters_of_interest_est_opt(:, 2, noise)             - kPL_val).^2)); 
+%         kPL_error_const(noise)             = sqrt(mean(abs(parameters_of_interest_est_const(:, 2, noise)           - kPL_val).^2)); 
+%         kPL_error_RF_compensated(noise)    = sqrt(mean(abs(parameters_of_interest_est_RF_compensated(:, 2, noise)  - kPL_val).^2)); 
+%         kTRANS_error_opt(noise)            = sqrt(mean(abs(parameters_of_interest_est_opt(:, 1, noise)             - kTRANS_val).^2)); 
+%         kTRANS_error_const(noise)          = sqrt(mean(abs(parameters_of_interest_est_const(:, 1, noise)           - kTRANS_val).^2)); 
+%         kTRANS_error_RF_compensated(noise) = sqrt(mean(abs(parameters_of_interest_est_RF_compensated(:, 1, noise)  - kTRANS_val).^2)); 
+%         R1P_error_opt(noise)               = sqrt(mean(abs(parameters_of_interest_est_opt(:, 3, noise)             - R1P_val).^2)); 
+%         R1P_error_const(noise)             = sqrt(mean(abs(parameters_of_interest_est_const(:, 3, noise)           - R1P_val).^2)); 
+%         R1P_error_RF_compensated(noise)    = sqrt(mean(abs(parameters_of_interest_est_RF_compensated(:, 3, noise)  - R1P_val).^2)); 
+%         R1L_error_opt(noise)               = sqrt(mean(abs(parameters_of_interest_est_opt(:, 4, noise)             - R1L_val).^2)); 
+%         R1L_error_const(noise)             = sqrt(mean(abs(parameters_of_interest_est_const(:, 4, noise)           - R1L_val).^2)); 
+%         R1L_error_RF_compensated(noise)    = sqrt(mean(abs(parameters_of_interest_est_RF_compensated(:, 4, noise)  - R1L_val).^2)); 
+% end
+% 
+% kPL_error_opt               = kPL_error_opt([1:2 4:end]);
+% kPL_error_const             = kPL_error_const([1:2 4:end]);
+% kPL_error_RF_compensated    = kPL_error_RF_compensated([1:2 4:end]);
+% kTRANS_error_opt            = kTRANS_error_opt([1:2 4:end]);
+% kTRANS_error_const          = kTRANS_error_const([1:2 4:end]);
+% kTRANS_error_RF_compensated = kTRANS_error_RF_compensated([1:2 4:end]);
+% R1P_error_opt               = R1P_error_opt([1:2 4:end]);
+% R1P_error_const             = R1P_error_const([1:2 4:end]);
+% R1P_error_RF_compensated    = R1P_error_RF_compensated([1:2 4:end]);
+% R1L_error_opt               = R1L_error_opt([1:2 4:end]);
+% R1L_error_const             = R1L_error_const([1:2 4:end]);
+% R1L_error_RF_compensated    = R1L_error_RF_compensated([1:2 4:end]);
+% noise_vals_small = noise_vals([1:2 4:end]);
+% 
+% figure
+% set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
+% loglog(noise_vals_small, kPL_error_const, 'o-', 'LineWidth', 2)
+% hold on
+% loglog(noise_vals_small, kPL_error_RF_compensated, 'o-', 'LineWidth', 2)
+% loglog(noise_vals_small, kPL_error_opt, 'o-', 'LineWidth', 2)
+% hold off
+% legend('constant', 'RF compensated', 'Fisher information')
+% xlabel('\sigma^2')
+% ylabel('RMS error (average of 25 trials)')
+% % title('kPL estimation error comparison')
+% set(leg,'FontSize',20);
+% set(gca,'FontSize',20);
+% tightfig(gcf)
+% print(gcf, '-dpdf', 'kPL_error.pdf');
+% 
+% figure
+% set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
+% loglog(noise_vals_small, kTRANS_error_const, 'o-', 'LineWidth', 2)
+% hold on
+% loglog(noise_vals_small, kTRANS_error_RF_compensated, 'o-', 'LineWidth', 2)
+% loglog(noise_vals_small, kTRANS_error_opt, 'o-', 'LineWidth', 2)
+% hold off
+% legend('constant', 'RF compensated', 'Fisher information')
+% xlabel('\sigma^2')
+% ylabel('RMS error (average of 25 trials)')
+% title('kTRANS estimation error comparison')
+% set(leg,'FontSize',20);
+% set(gca,'FontSize',20);
+% tightfig(gcf)
+% print(gcf, '-dpdf', 'kTRANS_error.pdf');
+% 
+% figure
+% set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
+% loglog(noise_vals_small, R1P_error_const, 'o-', 'LineWidth', 2)
+% hold on
+% loglog(noise_vals_small, R1P_error_RF_compensated, 'o-', 'LineWidth', 2)
+% loglog(noise_vals_small, R1P_error_opt, 'o-', 'LineWidth', 2)
+% hold off
+% legend('constant', 'RF compensated', 'Fisher information')
+% xlabel('\sigma^2')
+% ylabel('RMS error (average of 25 trials)')
+% title('R1P estimation error comparison')
+% set(leg,'FontSize',20);
+% set(gca,'FontSize',20);
+% tightfig(gcf)
+% print(gcf, '-dpdf', 'R1P_error.pdf');
+% 
+% figure
+% set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
+% loglog(noise_vals_small, R1L_error_const, 'o-', 'LineWidth', 2)
+% hold on
+% loglog(noise_vals_small, R1L_error_RF_compensated, 'o-', 'LineWidth', 2)
+% loglog(noise_vals_small, R1L_error_opt, 'o-', 'LineWidth', 2)
+% hold off
+% legend('constant', 'RF compensated', 'Fisher information')
+% xlabel('\sigma^2')
+% ylabel('RMS error (average of 25 trials)')
+% title('R1L estimation error comparison')
+% set(leg,'FontSize',20);
+% set(gca,'FontSize',20);
+% tightfig(gcf)
+% print(gcf, '-dpdf', 'R1L_error.pdf');
+% 
+% 
+% %% Generate scatterplot of data 
+% 
+% sigma_index = 3 % index where true noise value lies 
+% 
+% figure
+% set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
+% plot(parameters_of_interest_est_const(:, 1, sigma_index), parameters_of_interest_est_const(:, 2, sigma_index), 'o', 'MarkerFaceColor', berkeley_colors(2, :) )
+% hold on
+% plot(parameters_of_interest_est_RF_compensated(:, 1, sigma_index), parameters_of_interest_est_RF_compensated(:, 2, sigma_index), 'o', 'MarkerFaceColor', berkeley_colors(4, :))
+% plot(parameters_of_interest_est_opt(:, 1, sigma_index), parameters_of_interest_est_opt(:, 2, sigma_index), 'o', 'MarkerFaceColor', berkeley_colors(3, :))
+% plot(kTRANS_val, kPL_val, 'kx', 'MarkerSize', 20, 'LineWidth', 4)
+% hold off
+% leg = legend('constant', 'RF compensated', 'Fisher information', 'ground truth'); 
+% set(leg,'FontSize',20);
+% set(gca,'FontSize',20);
+% xlabel('kTRANS')
+% ylabel('kPL')
+% tightfig(gcf)
+% print(gcf, '-dpdf', 'kPL_kTRANS_numerical_est.pdf');
+% 
+% figure
+% set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
+% plot(parameters_of_interest_est_const(:, 3, sigma_index), parameters_of_interest_est_const(:, 4, sigma_index),  'o', 'MarkerFaceColor', berkeley_colors(2, :) )
+% hold on
+% plot(parameters_of_interest_est_RF_compensated(:, 3, sigma_index), parameters_of_interest_est_RF_compensated(:, 4, sigma_index),  'o', 'MarkerFaceColor', berkeley_colors(4, :) )
+% plot(parameters_of_interest_est_opt(:, 3, sigma_index), parameters_of_interest_est_opt(:, 4, sigma_index),  'o', 'MarkerFaceColor', berkeley_colors(3, :) )
+% plot(R1P_val, R1L_val, 'kx', 'MarkerSize', 20, 'LineWidth', 4)
+% hold off
+% leg = legend('constant', 'RF compensated', 'Fisher information', 'ground truth');
+% set(leg,'FontSize',20);
+% set(gca,'FontSize',20);
+% xlabel('R1P')
+% ylabel('R1L')
+% tightfig(gcf)
+% print(gcf, '-dpdf', 'R1P_R1L_numerical_est.pdf');
+% 
+% 
+% %% Plot bar graph of estimated error 
+% 
+% figure(13) 
+% bc = berkeley_colors([2 4 3], :); 
+% set(gca,'ColorOrder', bc, 'NextPlot', 'replacechildren')
+% h_bar_graph = bar(log10(noise_vals_small),  ...
+%     [kPL_error_const./kPL_error_opt; 
+%     kPL_error_RF_compensated./kPL_error_opt; 
+%     ones(size(kPL_error_opt))]'); 
+% for i = 1:length(h_bar_graph)
+%     set(h_bar_graph(i), 'FaceColor', bc(i, :)) 
+% end
+% ylabel('normalized RMS error') 
+% xlabel('log_{10} \sigma^2') 
+% legend('constant', 'RF compensated', 'Fisher information')
+% box on
+% set(leg,'FontSize',20);
+% set(gca,'FontSize',20);
+% axis([2.5 6.5 0 5])
+% set(gca,'XTick', log10(noise_vals_small))
+% tightfig(gcf)
+% print(gcf, '-dpdf', 'kPL_error_bar.pdf');
 
 
 %% Perform robustness experiment 
@@ -460,7 +555,7 @@ parameter_values = [linspace(0.01, 0.09, 5);
                     linspace(0.02, 0.08, 5);
                     linspace(0.02, 0.08, 5);
                     linspace(0.6, 1.4 , 5);
-                    linspace(0.9, 1.1, 5)]; 
+                    linspace(0.8, 1.2, 5)]; 
 
 
 [ error_opt_array, error_const_array, error_RF_compensated_array, ...
@@ -473,19 +568,19 @@ parameter_values = [linspace(0.01, 0.09, 5);
 
 %% Plot the results of robustness experiment 
 
-xaxis_labels = {'k_{TRANS}', 'k_{PL}', 'R_{1P}', 'R_{1L}', '\kappa', 'B_1'}; 
+xaxis_labels = {'k_{TRANS}', 'k_{PL}', 'R_{1P}', 'R_{1L}', '\kappa', 'relative B_1'}; 
 axis_limits_line  = [0.00 0.10 1e-03 1e02; 
                      0.02 0.12 0 0.07;
                      0.01 0.09 0 0.07;
                      0.01 0.09 0 0.07;
                      0.5  1.5  0 0.07;
-                     0.85 1.15 0 0.07]; 
+                     0.75 1.25 0 0.07]; 
 axis_limits_bar  = [0.00 0.10 0 5; 
                 0.02 0.12 0 5;
                 0.01 0.09 0 5;
                 0.01 0.09 0 5;
                 0.5  1.5  0 5;
-                0.85 1.15 0 5]; 
+                0.75 1.25 0 5]; 
 axis_type = {'ylog', 'linear', 'linear', 'linear', 'linear', 'linear'}; 
 plot_line_graphs(parameter_values, error_opt_array, error_const_array, ...
     error_RF_compensated_array, error_T1_effective_array, error_SNR_array,  ...
@@ -495,8 +590,20 @@ plot_bar_graphs(parameter_values, error_opt_array, error_const_array, ...
     berkeley_colors, xaxis_labels, axis_limits_bar)
 
 
-
 %% Compute numerical value of kPL improvement
+
+index = 2; 
+for param_count = 1:length(noise_vals)
+    error_opt(param_count)               = sqrt(mean(abs(parameters_of_interest_est_opt(:, index, param_count)            - kPL_val).^2)); 
+    error_const(param_count)             = sqrt(mean(abs(parameters_of_interest_est_const(:, index, param_count)          - kPL_val).^2)); 
+    error_RF_compensated(param_count)    = sqrt(mean(abs(parameters_of_interest_est_RF_compensated(:, index, param_count) - kPL_val).^2)); 
+    error_T1_effective(param_count)      = sqrt(mean(abs(parameters_of_interest_est_T1_effective(:, index, param_count)   - kPL_val).^2)); 
+    error_SNR(param_count)               = sqrt(mean(abs(parameters_of_interest_est_SNR(:, index, param_count)            - kPL_val).^2)); 
+end
  
-percent_improvement_over_constant_flip_angle_sequence       = mean(100*(kPL_error_const./kPL_error_opt - 1))
-percent_improvement_over_RF_compensated_flip_angle_sequence = mean(100*(kPL_error_RF_compensated./kPL_error_opt - 1))
+percent_improvement_over_constant_flip_angle_sequence       = mean(100*(error_const./error_opt - 1))
+percent_improvement_over_RF_compensated_flip_angle_sequence = mean(100*(error_RF_compensated./error_opt - 1))
+percent_improvement_over_T1_effective_flip_angle_sequence   = mean(100*(error_T1_effective./error_opt - 1))
+percent_improvement_over_max_SNR_flip_angle_sequence        = mean(100*(error_SNR./error_opt - 1))
+
+
