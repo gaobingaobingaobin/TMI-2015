@@ -120,8 +120,6 @@ classdef linear_exchange_model
             model.Bd_sym = model.A\((model.Ad_sym - eye(size(model.A)))*model.B);
 
             % evaluate system matrices, input and initial state at nominal parameter values 
-            [model.parameters_of_interest, model.nuisance_parameters, model.known_parameters]
-            [model.parameters_of_interest_nominal_values, model.nuisance_parameters_nominal_values, model.known_parameter_values]
             model.Ad_nom = double(subs(model.Ad_sym, [model.parameters_of_interest, model.nuisance_parameters, model.known_parameters], ...
                 [model.parameters_of_interest_nominal_values, model.nuisance_parameters_nominal_values, model.known_parameter_values]));
             model.Bd_nom = double(subs(model.Bd_sym, [model.parameters_of_interest, model.nuisance_parameters, model.known_parameters], ...
