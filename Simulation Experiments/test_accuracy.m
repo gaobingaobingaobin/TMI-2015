@@ -73,10 +73,10 @@ function [ parameters_of_interest_est_opt, ...
         end
 
     
-    %% Estimate nuisance parameters jointly from collected data sets  
+        %% Estimate nuisance parameters jointly from collected data sets  
 
-    fact = 1; 
-    options = optimset( 'Display', 'iter', 'MaxFunEvals', 5000); 
+        fact = 1; 
+        options = optimset( 'Display', 'iter', 'MaxFunEvals', 5000); 
         
         obj = @(var) joint_least_squares_5flipangles(var(1:3), known_parameters, sigma_squared, ...
             thetas_opt, thetas_const,  thetas_RF_compensated, thetas_T1_effective, thetas_SNR, ...
@@ -99,7 +99,7 @@ function [ parameters_of_interest_est_opt, ...
         u_est_SNR(:, param_count)            = joint_param_est(4+model.N+model.N+model.N+model.N:3+model.N+model.N+model.N+model.N+model.N, param_count)
 
 
-    %% Fit parameters of interest voxel-wise 
+        %% Fit parameters of interest voxel-wise 
          
         var_initial = [kTRANS_val, kPL_val, R1P_val, R1L_val];
         options = optimset( 'Display', 'iter', 'MaxFunEvals', 1000); 
