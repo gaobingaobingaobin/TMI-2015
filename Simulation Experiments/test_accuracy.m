@@ -20,8 +20,7 @@ function [ parameters_of_interest_est_opt, ...
     y_thetas_T1_effective   = zeros(model.n, model.N, num_trials, length(parameter_values)); 
     y_thetas_SNR            = zeros(model.n, model.N, num_trials, length(parameter_values)); 
     for param_count = 1:length(parameter_values)
-        parameter_to_vary == sigma_2
-        isAlways(parameter_to_vary == sigma_2)
+        [parameter_to_vary, param_count] 
         warning('off', 'symbolic:sym:isAlways:TruthUnknown')
         if isAlways(parameter_to_vary == R1P) || isAlways(parameter_to_vary == R1L)
             k = find(isAlways(eq(model.nuisance_parameters, parameter_to_vary)));  
@@ -72,18 +71,13 @@ function [ parameters_of_interest_est_opt, ...
             y_thetas_T1_effective(:, :, trial, param_count) = generate_data(model, model.flip_angle_input_matrix*thetas_T1_effective); 
             y_thetas_SNR(:, :, trial, param_count) = generate_data(model, model.flip_angle_input_matrix*thetas_SNR); 
         end
-    % end
 
     
     %% Estimate nuisance parameters jointly from collected data sets  
 
-    fact = 1
+    fact = 1; 
     options = optimset( 'Display', 'iter', 'MaxFunEvals', 5000); 
-    % for param_count = 1:length(parameter_values) 
         
-        % model.nuisance_parameters_nominal_values(k) = parameter_values(param_count); 
-        var(1:3)
-        % obj = @(var) joint_least_squares(var(1:3), known_parameters, sigma_squared, thetas_opt, thetas_const,  thetas_RF_compensated, mean(y_thetas_opt(:, :, :, param_count), 3), mean(y_thetas_const(:, :, :, param_count), 3), mean(y_thetas_RF_compensated(:, :, :, param_count), 3), var(4:3+model.N)/fact, var(4+model.N:3+2*model.N)/fact, var(4+model.N+model.N:3+model.N+model.N+model.N)/fact); 
         obj = @(var) joint_least_squares_5flipangles(var(1:3), known_parameters, sigma_squared, ...
             thetas_opt, thetas_const,  thetas_RF_compensated, thetas_T1_effective, thetas_SNR, ...
             mean(y_thetas_opt(:, :, :, param_count), 3), ...
@@ -103,49 +97,32 @@ function [ parameters_of_interest_est_opt, ...
         u_est_RF_compensated(:, param_count) = joint_param_est(4+model.N+model.N:3+model.N+model.N+model.N, param_count)
         u_est_T1_effective(:, param_count)   = joint_param_est(4+model.N+model.N+model.N:3+model.N+model.N+model.N+model.N, param_count)
         u_est_SNR(:, param_count)            = joint_param_est(4+model.N+model.N+model.N+model.N:3+model.N+model.N+model.N+model.N+model.N, param_count)
-    % end
 
 
     %% Fit parameters of interest voxel-wise 
-
-    %known_parameters = []; 
-    % for param_count = 1:length(parameter_values)   
-        
-        
-        
-        var_initial = [kTRANS_val, kPL_val, R1P_val, R1L_val]; 
+         
+        var_initial = [kTRANS_val, kPL_val, R1P_val, R1L_val];
+        options = optimset( 'Display', 'iter', 'MaxFunEvals', 1000); 
         for trial=1:num_trials
 
             [param_count, trial]
 
             obj = @(var) negative_log_likelihood_rician(var, [], sigma_squared, thetas_opt, y_thetas_opt(:, :, trial, param_count), abs(u_est_opt(:, param_count))); 
-            options = optimset( 'Display', 'iter', 'MaxFunEvals', 1000); 
             parameters_of_interest_est_opt(trial, :, param_count) = fminunc(obj, var_initial, options);
 
             obj = @(var) negative_log_likelihood_rician(var, [], sigma_squared, thetas_const, y_thetas_const(:, :, trial, param_count), abs(u_est_const(:, param_count))); 
-            options = optimset( 'Display', 'iter', 'MaxFunEvals', 1000); 
             parameters_of_interest_est_const(trial, :, param_count) = fminunc(obj, var_initial, options);
 
             obj = @(var) negative_log_likelihood_rician(var, [], sigma_squared, thetas_RF_compensated, y_thetas_RF_compensated(:, :, trial, param_count), abs(u_est_RF_compensated(:, param_count))); 
-            options = optimset( 'Display', 'iter', 'MaxFunEvals', 1000); 
             parameters_of_interest_est_RF_compensated(trial, :, param_count) = fminunc(obj, var_initial, options);
             
             obj = @(var) negative_log_likelihood_rician(var, [], sigma_squared, thetas_T1_effective, y_thetas_T1_effective(:, :, trial, param_count), abs(u_est_T1_effective(:, param_count))); 
-            options = optimset( 'Display', 'iter', 'MaxFunEvals', 1000); 
             parameters_of_interest_est_T1_effective(trial, :, param_count) = fminunc(obj, var_initial, options);
             
             obj = @(var) negative_log_likelihood_rician(var, [], sigma_squared, thetas_SNR, y_thetas_SNR(:, :, trial, param_count), abs(u_est_SNR(:, param_count))); 
-            options = optimset( 'Display', 'iter', 'MaxFunEvals', 1000); 
             parameters_of_interest_est_SNR(trial, :, param_count) = fminunc(obj, var_initial, options);
         end
-    %end
-    
-    %for param_count = 1:length(parameter_values)  
-        kPL_error_opt(param_count)               = sqrt(mean(abs(parameters_of_interest_est_opt(:, 2, param_count)             - kPL_val).^2)); 
-        kPL_error_const(param_count)             = sqrt(mean(abs(parameters_of_interest_est_const(:, 2, param_count)           - kPL_val).^2)); 
-        kPL_error_RF_compensated(param_count)    = sqrt(mean(abs(parameters_of_interest_est_RF_compensated(:, 2, param_count)  - kPL_val).^2)); 
-        kPL_error_T1_effective(param_count)      = sqrt(mean(abs(parameters_of_interest_est_T1_effective(:, 2, param_count)    - kPL_val).^2)); 
-        kPL_error_SNR(param_count)               = sqrt(mean(abs(parameters_of_interest_est_SNR(:, 2, param_count)             - kPL_val).^2)); 
+
     end
 
 
