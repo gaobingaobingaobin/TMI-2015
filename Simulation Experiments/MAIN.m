@@ -195,8 +195,11 @@ plot(q_opt'.*180./pi, 'x-', 'LineWidth', 2)
 title('Optimized flip angle sequence') 
 xlabel('acquisition number')
 ylabel('flip angle (degrees)')
-legend('pyruvate', 'lactate')
-
+leg = legend('pyruvate', 'lactate'); 
+set(leg,'FontSize',20);
+set(gca,'FontSize',20);
+tightfig(gcf);
+print(gcf, '-dpdf', 'flip_angles.pdf');
 
 %% Visualize state and output trajectories for optimized sequence
 
@@ -257,14 +260,17 @@ load('thetas_SNR.mat')
 sigma_index = 3 % index where true noise value lies 
 
 figure
-set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
-plot(parameters_of_interest_est_const(:, 1, sigma_index), parameters_of_interest_est_const(:, 2, sigma_index), 'o', 'MarkerFaceColor', berkeley_colors(2, :) )
+set(gca,'ColorOrder', berkeley_colors([2 4 1 6 3], :), 'NextPlot', 'replacechildren')
+plot(parameters_of_interest_est_T1_effective(:, 1, sigma_index), parameters_of_interest_est_T1_effective(:, 2, sigma_index), 'o', 'MarkerFaceColor', berkeley_colors(2, :) )
 hold on
 plot(parameters_of_interest_est_RF_compensated(:, 1, sigma_index), parameters_of_interest_est_RF_compensated(:, 2, sigma_index), 'o', 'MarkerFaceColor', berkeley_colors(4, :))
+plot(parameters_of_interest_est_const(:, 1, sigma_index), parameters_of_interest_est_const(:, 2, sigma_index), 'o', 'MarkerFaceColor', berkeley_colors(1, :) )
+plot(parameters_of_interest_est_SNR(:, 1, sigma_index), parameters_of_interest_est_SNR(:, 2, sigma_index), 'o', 'MarkerFaceColor', berkeley_colors(6, :))
 plot(parameters_of_interest_est_opt(:, 1, sigma_index), parameters_of_interest_est_opt(:, 2, sigma_index), 'o', 'MarkerFaceColor', berkeley_colors(3, :))
 plot(kTRANS_val, kPL_val, 'kx', 'MarkerSize', 20, 'LineWidth', 4)
 hold off
-leg = legend('constant', 'RF compensated', 'Fisher information', 'ground truth'); 
+axis([0.045 0.065 0.06 0.08])
+leg = legend('T1 effective', 'RF compensated', 'constant', 'total SNR', 'Fisher information', 'ground truth');
 set(leg,'FontSize',20);
 set(gca,'FontSize',20);
 xlabel('kTRANS')
@@ -273,14 +279,17 @@ tightfig(gcf)
 print(gcf, '-dpdf', 'kPL_kTRANS_numerical_est.pdf');
 
 figure
-set(gca,'ColorOrder', berkeley_colors([2 4 3], :), 'NextPlot', 'replacechildren')
-plot(parameters_of_interest_est_const(:, 3, sigma_index), parameters_of_interest_est_const(:, 4, sigma_index),  'o', 'MarkerFaceColor', berkeley_colors(2, :) )
+set(gca,'ColorOrder', berkeley_colors([2 4 1 6 3], :), 'NextPlot', 'replacechildren')
+plot(parameters_of_interest_est_T1_effective(:, 3, sigma_index), parameters_of_interest_est_T1_effective(:, 4, sigma_index), 'o', 'MarkerFaceColor', berkeley_colors(2, :) )
 hold on
-plot(parameters_of_interest_est_RF_compensated(:, 3, sigma_index), parameters_of_interest_est_RF_compensated(:, 4, sigma_index),  'o', 'MarkerFaceColor', berkeley_colors(4, :) )
-plot(parameters_of_interest_est_opt(:, 3, sigma_index), parameters_of_interest_est_opt(:, 4, sigma_index),  'o', 'MarkerFaceColor', berkeley_colors(3, :) )
+plot(parameters_of_interest_est_RF_compensated(:, 3, sigma_index), parameters_of_interest_est_RF_compensated(:, 4, sigma_index), 'o', 'MarkerFaceColor', berkeley_colors(4, :))
+plot(parameters_of_interest_est_const(:, 3, sigma_index), parameters_of_interest_est_const(:, 4, sigma_index), 'o', 'MarkerFaceColor', berkeley_colors(1, :) )
+plot(parameters_of_interest_est_SNR(:, 3, sigma_index), parameters_of_interest_est_SNR(:, 4, sigma_index), 'o', 'MarkerFaceColor', berkeley_colors(6, :))
+plot(parameters_of_interest_est_opt(:, 3, sigma_index), parameters_of_interest_est_opt(:, 4, sigma_index), 'o', 'MarkerFaceColor', berkeley_colors(3, :))
 plot(R1P_val, R1L_val, 'kx', 'MarkerSize', 20, 'LineWidth', 4)
 hold off
-leg = legend('constant', 'RF compensated', 'Fisher information', 'ground truth');
+axis([0.04 0.06 0.04 0.06])
+leg = legend('T1 effective', 'RF compensated', 'constant', 'total SNR', 'Fisher information', 'ground truth');
 set(leg,'FontSize',20);
 set(gca,'FontSize',20);
 xlabel('R1P')
@@ -327,13 +336,13 @@ error_plot(4, R1L_val, 'R1L', ...
 %% Perform robustness experiment 
 
 syms input_scale t0 B1
-parameters_to_vary = [kTRANS, kPL, R1P, R1L, input_scale, B1];  
+parameters_to_vary = [kTRANS, kPL, R1P, R1L, input_scale, t0];  
 parameter_values = [linspace(0.01, 0.09, 5); 
                     linspace(0.03, 0.11, 5);
                     linspace(0.02, 0.08, 5);
                     linspace(0.02, 0.08, 5);
                     linspace(0.6, 1.4 , 5);
-                    linspace(0.8, 1.2, 5)]; 
+                    linspace(0,   8,   5)]; 
 
 
 [ error_opt_array, error_const_array, error_RF_compensated_array, ...
@@ -346,19 +355,19 @@ parameter_values = [linspace(0.01, 0.09, 5);
 
 %% Plot the results of robustness experiment 
 
-xaxis_labels = {'k_{TRANS}', 'k_{PL}', 'R_{1P}', 'R_{1L}', '\kappa', 'relative B_1'}; 
-axis_limits_line  = [0.00 0.10 1e-03 1e02; 
-                     0.02 0.12 0 0.07;
-                     0.01 0.09 0 0.07;
-                     0.01 0.09 0 0.07;
-                     0.5  1.5  0 0.07;
-                     0.75 1.25 0 0.07]; 
+xaxis_labels = {'k_{TRANS}', 'k_{PL}', 'R_{1P}', 'R_{1L}', '\kappa', 't_0'}; 
+axis_limits_line  = [0.00 0.10 1e-04 1e01; 
+                     0.02 0.12 0 0.004;
+                     0.01 0.09 0 0.004;
+                     0.01 0.09 0 0.004;
+                     0.5  1.5  0 0.004;
+                     -1   9    0 0.004]; 
 axis_limits_bar  = [0.00 0.10 0 5; 
                 0.02 0.12 0 5;
                 0.01 0.09 0 5;
                 0.01 0.09 0 5;
                 0.5  1.5  0 5;
-                0.75 1.25 0 5]; 
+                -1 9 0 5]; 
 axis_type = {'ylog', 'linear', 'linear', 'linear', 'linear', 'linear'}; 
 plot_line_graphs(parameter_values, error_opt_array, error_const_array, ...
     error_RF_compensated_array, error_T1_effective_array, error_SNR_array,  ...
@@ -378,10 +387,29 @@ for param_count = 1:length(noise_vals)
     error_T1_effective(param_count)      = sqrt(mean(abs(parameters_of_interest_est_T1_effective(:, index, param_count)   - kPL_val).^2)); 
     error_SNR(param_count)               = sqrt(mean(abs(parameters_of_interest_est_SNR(:, index, param_count)            - kPL_val).^2)); 
 end
- 
-percent_improvement_over_constant_flip_angle_sequence       = mean(100*(error_const./error_opt - 1))
-percent_improvement_over_RF_compensated_flip_angle_sequence = mean(100*(error_RF_compensated./error_opt - 1))
-percent_improvement_over_T1_effective_flip_angle_sequence   = mean(100*(error_T1_effective./error_opt - 1))
-percent_improvement_over_max_SNR_flip_angle_sequence        = mean(100*(error_SNR./error_opt - 1))
+
+indices = [1:sigma_index-1 sigma_index+1:length(error_opt)]; 
+% percent_improvement_over_constant_flip_angle_sequence       = mean(100*(error_const(indices)./error_opt(indices) - 1))
+% percent_improvement_over_RF_compensated_flip_angle_sequence = mean(100*(error_RF_compensated(indices)./error_opt(indices) - 1))
+% percent_improvement_over_T1_effective_flip_angle_sequence   = mean(100*(error_T1_effective(indices)./error_opt(indices) - 1))
+% percent_improvement_over_max_SNR_flip_angle_sequence        = mean(100*(error_SNR(indices)./error_opt(indices) - 1))
+
+percent_improvement_over_T1_effective_flip_angle_sequence   = mean(100*(1 - error_opt(indices)./error_T1_effective(indices)))
+percent_improvement_over_RF_compensated_flip_angle_sequence = mean(100*(1 - error_opt(indices)./error_RF_compensated(indices)))
+percent_improvement_over_constant_flip_angle_sequence       = mean(100*(1 - error_opt(indices)./error_const(indices)))
+percent_improvement_over_max_SNR_flip_angle_sequence        = mean(100*(1 - error_opt(indices)./error_SNR(indices)))
 
 
+%%
+figure 
+set(gca,'ColorOrder', berkeley_colors(2:end, :), 'NextPlot', 'replacechildren')
+plot(thetas_SNR'.*180./pi, 'x-', 'LineWidth', 2) 
+title('Maximum total SNR flip angle sequence') 
+xlabel('acquisition number')
+ylabel('flip angle (degrees)')
+axis([0 30 0 100])
+leg = legend('pyruvate', 'lactate'); 
+set(leg,'FontSize',20);
+set(gca,'FontSize',20);
+tightfig(gcf);
+print(gcf, '-dpdf', 'flip_angles_SNR.pdf');
