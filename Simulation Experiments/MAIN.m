@@ -357,11 +357,11 @@ parameter_values = [linspace(0.01, 0.09, 5);
 
 xaxis_labels = {'k_{TRANS}', 'k_{PL}', 'R_{1P}', 'R_{1L}', '\kappa', 't_0'}; 
 axis_limits_line  = [0.00 0.10 1e-04 1e01; 
-                     0.02 0.12 0 0.004;
-                     0.01 0.09 0 0.004;
-                     0.01 0.09 0 0.004;
-                     0.5  1.5  0 0.004;
-                     -1   9    0 0.004]; 
+                     0.02 0.12 0 0.003;
+                     0.01 0.09 0 0.003;
+                     0.01 0.09 0 0.003;
+                     0.5  1.5  0 0.003;
+                     -1   9    0 0.003]; 
 axis_limits_bar  = [0.00 0.10 0 5; 
                 0.02 0.12 0 5;
                 0.01 0.09 0 5;
@@ -369,9 +369,10 @@ axis_limits_bar  = [0.00 0.10 0 5;
                 0.5  1.5  0 5;
                 -1 9 0 5]; 
 axis_type = {'ylog', 'linear', 'linear', 'linear', 'linear', 'linear'}; 
+legend_locations = {'northeast', 'southeast', 'southeast', 'southeast', 'southeast', 'southeast'}; 
 plot_line_graphs(parameter_values, error_opt_array, error_const_array, ...
     error_RF_compensated_array, error_T1_effective_array, error_SNR_array,  ...
-    berkeley_colors, xaxis_labels, axis_limits_line, axis_type)
+    berkeley_colors, xaxis_labels, axis_limits_line, axis_type, legend_locations)
 plot_bar_graphs(parameter_values, error_opt_array, error_const_array, ...
     error_RF_compensated_array, error_T1_effective_array, error_SNR_array, ...
     berkeley_colors, xaxis_labels, axis_limits_bar)

@@ -1,4 +1,4 @@
-function [  ] = plot_line_graphs(parameter_values, error_opt_array, error_const_array, error_RF_compensated_array, error_T1_effective_array, error_SNR_array, berkeley_colors, xaxis_labels, axis_limits, axis_type)
+function [  ] = plot_line_graphs(parameter_values, error_opt_array, error_const_array, error_RF_compensated_array, error_T1_effective_array, error_SNR_array, berkeley_colors, xaxis_labels, axis_limits, axis_type, legend_locations)
 
 for k=1:size(parameter_values, 1) 
     
@@ -23,7 +23,7 @@ for k=1:size(parameter_values, 1)
     else
         error('Failed to set axis type')
     end
-    leg = legend('T1 effective', 'RF compensated', 'constant', 'total SNR', 'Fisher information'); 
+    leg = legend('T1 effective', 'RF compensated', 'constant', 'total SNR', 'Fisher information', 'Location', legend_locations{k}); 
     xlabel(xaxis_labels(k))
     ylabel('RMS error (average of 25 trials)')
     set(leg,'FontSize',20);
